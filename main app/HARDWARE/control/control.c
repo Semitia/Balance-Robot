@@ -1,10 +1,6 @@
 #include "control.h"
 #include "usart2.h"
 /**************************************************************************
- 作  者 ：大鱼电子
- 淘宝地址：https://shop119207236.taobao.com
-**************************************************************************/
-/**************************************************************************
 函数功能：所有的控制代码都在这里面
          5ms定时中断由MPU6050的INT引脚触发
          严格保证采样和数据处理的时间同步	
@@ -33,13 +29,7 @@ float Turn_KP=TURN_KP;
 u8 SR04_Counter=0;
 u8 Voltage_Counter=0;
 
-u8 Send_Count,i;
-float gyrox_f, gyroy_f, gyroz_f;	
-float _gyrox_kal, gyrox_kal, _Px, Px=1, Kal_x, Q_x=0.1, R_x=5;
-float roll_raw=0, roll_kal=0;
-float PP[2][2] = {{1,0},{0,1}};
-float Q_angle = 0.0001, Q_bias = -77;
-float dt = 0.00061, K_0, K_1, R_angle = 1, R_gyro = 1;
+
 void EXTI9_5_IRQHandler(void) 
 {    
 	if(PBin(5)==0)
@@ -47,47 +37,13 @@ void EXTI9_5_IRQHandler(void)
 		EXTI->PR=1<<5;                                           //===清除LINE5上的中断标志位   
 		mpu_dmp_get_data(&pitch,&roll,&yaw);										 //===得到欧拉角（姿态角）的数据
 		MPU_Get_Gyroscope(&gyrox,&gyroy,&gyroz);								 //===得到陀螺仪数据
+		MPU_Get_Accelerometer(&aacx, &aacy, &aacz);
 		Encoder_Left=Read_Encoder(2);                           //===读取编码器的值，因为两个电机的旋转了180度的，所以对其中一个取反，保证输出极性一致
 		Encoder_Right=-Read_Encoder(3);                           //===读取编码器的值
 		
-		roll_raw += (gyrox+78)*dt;
-		roll_kal += (gyrox - Q_bias)*dt;
-		PP[0][0] = PP[0][0] + Q_angle - (PP[0][1] + PP[1][0])*dt;
-		PP[0][1] = PP[0][1] - PP[1][1]*dt;
-		PP[1][0] = PP[1][0] - PP[1][1]*dt;
-		PP[1][1] = PP[1][1] + 0.003;
-		K_0 = PP[0][0] / (PP[0][0] + R_angle);
-		K_1 = PP[1][0] / (PP[0][0] + R_angle);
-		roll_kal = roll_kal + K_0 * (roll - roll_kal);
-		Q_bias = Q_bias + K_1 * (roll - roll_kal);
-		PP[0][0] = PP[0][0] - K_0 * PP[0][0];
-		PP[0][1] = PP[0][1] - K_0 * PP[0][1];
-		PP[1][0] = PP[1][0] - K_1 * PP[0][0];
-		PP[1][1] = PP[1][1] - K_1 * PP[0][1];
-
-		/*
-		gyrox_f = (float) gyrox;
-		gyroy_f = (float) gyroy;
-		gyroz_f = (float) gyroz;
-		_gyrox_kal = gyrox_kal;
-		_Px = Q_x + Px;
-		Kal_x = _Px/(_Px + R_x);
-		gyrox_kal = _gyrox_kal + Kal_x*(gyrox_f - _gyrox_kal);
-		Px = (1-Kal_x)*_Px;
-		*/
-		DataScope_Get_Channel_Data(roll_kal, 1 );
-		DataScope_Get_Channel_Data(roll, 2 );
-		DataScope_Get_Channel_Data(gyrox, 3 );
-		DataScope_Get_Channel_Data(Q_bias, 4 );
-		Send_Count=DataScope_Data_Generate(4);
-		for( i = 0 ; i < Send_Count; i++) 
-		{
-			while((USART1->SR&0X40)==0);  
-			USART1->DR = DataScope_OutPut_Buffer[i]; 
-		}
 		
 		Voltage_Counter++;
-		if(Voltage_Counter==20)									 //===100ms读取一次超声波的数据
+		if(Voltage_Counter==20)									 //===100ms我觉得这是读取电池电压
 		{
 			Voltage_Counter=0;
 			Voltage=Get_battery_volt();		                         //===读取电池电压
@@ -157,7 +113,8 @@ void EXTI9_5_IRQHandler(void)
 		Moto2=Balance_Pwm-Velocity_Pwm-Turn_Pwm;                 //===计算右轮电机最终PWM
 	  Xianfu_Pwm();  																					 //===PWM限幅
 		Turn_Off(pitch,12);																 //===检查角度以及电压是否正常
-		Set_Pwm(Moto1,Moto2);                                    //===赋值给PWM寄存器  
+		Set_Pwm(Moto1,Moto2);    //===赋值给PWM寄存器  
+		print();
 	}
 }
 
@@ -220,4 +177,36 @@ void Tracking()
 	TkSensor+=(C2<<2);
 	TkSensor+=(C3<<1);
 	TkSensor+=C4;
+}
+
+float gyrox_f, gyroy_f, gyroz_f;	
+float _gyrox_kal, gyrox_kal, _Px, Px=1, Kal_x, Q_x=0.1, R_x=5;
+float roll_raw=0, roll_kal=0;
+float PP[2][2] = {{1,0},{0,1}};
+float Q_angle = 0.0001, Q_bias = -77;
+float dt = 0.00061, K_0, K_1, R_angle = 1, R_gyro = 1;
+
+void kalman()
+{
+	if(aacx<32764) aacx=aacx/16384.0;//??x????
+	else              aacx=1-(aacx-49152)/16384.0;
+	if(aacy<32764) aacy=aacy/16384.0;//??y????
+	else              aacy=1-(aacy-49152)/16384.0;
+	if(aacz<32764) aacz=aacz/16384.0;//??z????
+	else              aacz=(aacz-49152)/16384.0;
+	
+	
+}
+
+void print(void)
+{
+	u8 Send_Count,i;
+	DataScope_Get_Channel_Data(aacy, 1);
+	DataScope_Get_Channel_Data(gyroy, 2);
+	Send_Count=DataScope_Data_Generate(2);
+	for( i = 0 ; i < Send_Count; i++) 
+	{
+		while((USART1->SR&0X40)==0);  
+		USART1->DR = DataScope_OutPut_Buffer[i]; 
+	}	
 }
