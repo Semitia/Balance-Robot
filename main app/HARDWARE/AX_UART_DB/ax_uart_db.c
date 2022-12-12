@@ -44,7 +44,6 @@
   */
 
 #include "ax_uart_db.h"
-#include <stdio.h>
 
 static uint8_t uart_db_flag_rx_ok = 0; //接收成功标志
 static uint8_t uart_db_rx_con=0;       //接收计数器
@@ -89,7 +88,7 @@ void AX_UART_DB_Init(uint32_t baud)
 	
 	//配置USART为中断源
 	NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2; //抢断优先级	
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0; //抢断优先级	
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;	//子优先级
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;	//使能中断
 	NVIC_Init(&NVIC_InitStructure);//初始化配置NVIC

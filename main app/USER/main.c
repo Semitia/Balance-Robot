@@ -2,7 +2,7 @@
 /****************************全局变量*************************************/    
 float Voltage;  															 //电池电压采样相关的变量
 float pitch,roll,yaw; 								  			 //欧拉角(姿态角)
-short aacx,aacy,aacz;													 //加速度传感器原始数据
+float aacx,aacy,aacz;													 //加速度传感器原始数据
 short gyrox,gyroy,gyroz;											 //陀螺仪原始数据
 float SR04_Distance;                 //超声波测距
 
@@ -21,7 +21,8 @@ int main(void)
 	PlugIn_Init();										 //=====初始化与 USB 连接的IO
 	KEY_Init();                    //=====初始化与按键连接的IO
 	delay_init();	    	           //=====延时函数初始化	
-	uart1_init(115200);	          	 //=====串口1初始化
+	//uart1_init(115200);	          	 //=====串口1初始化
+	AX_UART_DB_Init(115200);
 	uart2_init(9600);							 //=====串口2初始化即蓝牙初始化
 	delay_ms(100);
 /*****************修改蓝牙的默认通信波特率以及蓝牙默认的名字******************

@@ -1,5 +1,5 @@
 #include "control.h"
-#include "usart2.h"
+
 /**************************************************************************
 函数功能：所有的控制代码都在这里面
          5ms定时中断由MPU6050的INT引脚触发
@@ -7,8 +7,7 @@
 				 在MPU6050的采样频率设置中，设置成100HZ，即可保证6050的数据是10ms更新一次。
 				 读者可在imv_mpu.h文件第26行的宏定义进行修改(#define DEFAULT_MPU_HZ  (100))
 **************************************************************************/
-#define SPEED_Y 40 //俯仰(前后)最大设定速度
-#define SPEED_Z 100//偏航(左右)最大设定速度 
+
 
 int Balance_Pwm,Velocity_Pwm,Turn_Pwm,Turn_Kp;
 
@@ -28,8 +27,8 @@ float Turn_KP=TURN_KP;
 
 u8 SR04_Counter=0;
 u8 Voltage_Counter=0;
-
-
+u8 rec_data[18];
+short get_aacx, get_aacy, get_aacz;
 void EXTI9_5_IRQHandler(void) 
 {    
 	if(PBin(5)==0)
@@ -37,7 +36,7 @@ void EXTI9_5_IRQHandler(void)
 		EXTI->PR=1<<5;                                           //===清除LINE5上的中断标志位   
 		mpu_dmp_get_data(&pitch,&roll,&yaw);										 //===得到欧拉角（姿态角）的数据
 		MPU_Get_Gyroscope(&gyrox,&gyroy,&gyroz);								 //===得到陀螺仪数据
-		MPU_Get_Accelerometer(&aacx, &aacy, &aacz);
+		MPU_Get_Accelerometer(&get_aacx, &get_aacy, &get_aacz);
 		Encoder_Left=Read_Encoder(2);                           //===读取编码器的值，因为两个电机的旋转了180度的，所以对其中一个取反，保证输出极性一致
 		Encoder_Right=-Read_Encoder(3);                           //===读取编码器的值
 		
@@ -114,7 +113,9 @@ void EXTI9_5_IRQHandler(void)
 	  Xianfu_Pwm();  																					 //===PWM限幅
 		Turn_Off(pitch,12);																 //===检查角度以及电压是否正常
 		Set_Pwm(Moto1,Moto2);    //===赋值给PWM寄存器  
-		print();
+		//kalman();
+		//print();
+		data_receive();
 	}
 }
 
@@ -179,34 +180,101 @@ void Tracking()
 	TkSensor+=C4;
 }
 
-float gyrox_f, gyroy_f, gyroz_f;	
-float _gyrox_kal, gyrox_kal, _Px, Px=1, Kal_x, Q_x=0.1, R_x=5;
-float roll_raw=0, roll_kal=0;
-float PP[2][2] = {{1,0},{0,1}};
-float Q_angle = 0.0001, Q_bias = -77;
-float dt = 0.00061, K_0, K_1, R_angle = 1, R_gyro = 1;
 
-void kalman()
+float roll_raw=0, pitch_raw=0;
+float roll_kal, bias = -45;
+float Q_angle = 0.02,Q_bias = 0.3;
+float dt = 0.00061, K_0, K_1, R_angle = 1.5, R_gyro = 1.5;
+
+void kalman(void)
 {
-	if(aacx<32764) aacx=aacx/16384.0;//??x????
-	else              aacx=1-(aacx-49152)/16384.0;
-	if(aacy<32764) aacy=aacy/16384.0;//??y????
-	else              aacy=1-(aacy-49152)/16384.0;
-	if(aacz<32764) aacz=aacz/16384.0;//??z????
-	else              aacz=(aacz-49152)/16384.0;
+	float tem_accx=get_aacx, tem_accy=get_aacy, tem_accz=get_aacz;//tem记录acc的值，后者之后会被更新	
+	static float K_0, K_1;	
+	static float PP[2][2] = { { 1, 0 },{ 0, 1 } };
+	//printf("aacy:%.1f, aacz:%.1f\r\n",tem_accy,tem_accz);
 	
+	if(aacx<32764) aacx=tem_accx/16384.0;
+	else              aacx=1-(tem_accx-49152)/16384.0;
+	if(aacy<32764) aacy=tem_accy/16384.0;
+	else              aacy=1-(tem_accy-49152)/16384.0;
+	if(aacz<32764) aacz=tem_accz/16384.0;
+	else              aacz=(tem_accz-49152)/16384.0;
+	pitch_raw=(atan(aacy/aacz))*180/3.14;
+	roll_raw=(atan(aacx/aacz))*180/3.14;
+	if(tem_accx<32764) roll_raw = +roll_raw;
+	if(tem_accx>32764) roll_raw = -roll_raw;
+	if(tem_accy<32764) pitch_raw = +pitch_raw;
+	if(tem_accy>32764) pitch_raw = -pitch_raw;
+	
+	roll_kal += (gyroy - bias) * dt; 
+	PP[0][0] = PP[0][0] + Q_angle - (PP[0][1] + PP[1][0])*dt;
+	PP[0][1] = PP[0][1] - PP[1][1]*dt;
+	PP[1][0] = PP[1][0] - PP[1][1]*dt;
+	PP[1][1] = PP[1][1] + Q_bias;
+	K_0 = PP[0][0] / (PP[0][0] + R_angle);
+	K_1 = PP[1][0] / (PP[0][0] + R_angle);
+	roll_kal = roll_kal + K_0 * (roll_raw - roll_kal);
+	bias = bias + K_1 * (roll_raw - roll_kal);
+	PP[0][0] = PP[0][0] - K_0 * PP[0][0];
+	PP[0][1] = PP[0][1] - K_0 * PP[0][1];
+	PP[1][0] = PP[1][0] - K_1 * PP[0][0];
+	PP[1][1] = PP[1][1] - K_1 * PP[0][1];
 	
 }
 
 void print(void)
 {
 	u8 Send_Count,i;
-	DataScope_Get_Channel_Data(aacy, 1);
-	DataScope_Get_Channel_Data(gyroy, 2);
-	Send_Count=DataScope_Data_Generate(2);
+	DataScope_Get_Channel_Data(-roll_kal, 1);
+	DataScope_Get_Channel_Data(-roll_raw, 2);
+	DataScope_Get_Channel_Data(pitch, 3);	
+
+	Send_Count=DataScope_Data_Generate(4);
 	for( i = 0 ; i < Send_Count; i++) 
 	{
 		while((USART1->SR&0X40)==0);  
 		USART1->DR = DataScope_OutPut_Buffer[i]; 
 	}	
+}
+
+void data_receive(void)
+{
+	u8 i;
+	u16 servo[6];
+	u8 num = AX_UART_DB_GetData(rec_data);
+	if(!num) {return;}
+	switch(rec_data[0])
+	{
+		case 2: //卡尔曼参数
+			/*
+			for(i=1; i<num; i++)
+			{
+				printf("%d: %d\r\n",i,rec_data[i]);
+			}
+			printf("\r\n");
+			*/
+			servo[0] = (rec_data[1]<<8) + rec_data[2];
+			servo[1] = (rec_data[3]<<8) + rec_data[4];
+			servo[2] = (rec_data[5]<<8) + rec_data[6];
+			servo[3] = (rec_data[7]<<8) + rec_data[8];
+			Q_angle  = (rec_data[9]<<8) + rec_data[10];
+			Q_bias   = (rec_data[11]<<8) + rec_data[12];
+			R_angle  = (rec_data[13]<<8) + rec_data[14];
+			R_gyro   = (rec_data[15]<<8) + rec_data[16];
+			break;
+		case 3: //PID参数
+			balance_UP_KP = (rec_data[1]<<8) + rec_data[2];
+			printf("UP_KP");
+			servo[1] = (rec_data[3]<<8) + rec_data[4];
+			servo[2] = (rec_data[5]<<8) + rec_data[6];
+			servo[3] = (rec_data[7]<<8) + rec_data[8];
+			Q_angle  = (rec_data[9]<<8) + rec_data[10];
+			Q_bias   = (rec_data[11]<<8) + rec_data[12];
+			R_angle  = (rec_data[13]<<8) + rec_data[14];
+			R_gyro   = (rec_data[15]<<8) + rec_data[16];
+		
+			break;	
+	}
+	delay_ms(1000);
+	return;
 }
