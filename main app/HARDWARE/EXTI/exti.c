@@ -35,7 +35,7 @@ void MPU6050_EXTI_Init(void)
 	
 		//////////////////外部中断5优先级配置也就是MPU6050 INT引脚的配置///////////因为是控制中断，故此优先级应是最高。
 		NVIC_InitStructure.NVIC_IRQChannel = EXTI9_5_IRQn;				//使能外部中断通道
-		NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x01;	//抢占优先级0， 
+		NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x00;	//抢占优先级0， 
 		NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x01;					//子优先级1
 		NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;								//使能外部中断通道
 		NVIC_Init(&NVIC_InitStructure); 

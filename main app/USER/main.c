@@ -1,8 +1,12 @@
+ /**************************************************************************
+ 作  者 ：大鱼电子
+ 淘宝地址：https://shop119207236.taobao.com
+**************************************************************************/
 #include "sys.h"
 /****************************全局变量*************************************/    
 float Voltage;  															 //电池电压采样相关的变量
 float pitch,roll,yaw; 								  			 //欧拉角(姿态角)
-float aacx,aacy,aacz;													 //加速度传感器原始数据
+short aacx,aacy,aacz;													 //加速度传感器原始数据
 short gyrox,gyroy,gyroz;											 //陀螺仪原始数据
 float SR04_Distance;                 //超声波测距
 
@@ -21,8 +25,7 @@ int main(void)
 	PlugIn_Init();										 //=====初始化与 USB 连接的IO
 	KEY_Init();                    //=====初始化与按键连接的IO
 	delay_init();	    	           //=====延时函数初始化	
-	//uart1_init(115200);	          	 //=====串口1初始化
-	AX_UART_DB_Init(115200);
+	uart1_init(115200);	          	 //=====串口1初始化
 	uart2_init(9600);							 //=====串口2初始化即蓝牙初始化
 	delay_ms(100);
 /*****************修改蓝牙的默认通信波特率以及蓝牙默认的名字******************
@@ -50,9 +53,8 @@ int main(void)
 	Timer4_Init(5000,7199);	    	 //=====超声波定时器初始化
   while(1)	
 	{
-		//oled_show();
-		//printf("PWMA:%d\r\n",PWMA);
-		delay_ms(500); //20HZ的显示频率，屏幕无需时刻刷新。
+		oled_show();
+		delay_ms(50); //20HZ的显示频率，屏幕无需时刻刷新。
 	}
 }
 void Tracking_Init(void)

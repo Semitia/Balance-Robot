@@ -26,5 +26,4 @@ void Set_Pwm(int moto1,int moto2);
 int myabs(int a);
 void Xianfu_Pwm(void);
 void Turn_Off(float angle, float voltage);
-
 #endif
