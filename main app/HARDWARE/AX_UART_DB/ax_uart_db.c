@@ -89,7 +89,7 @@ void AX_UART_DB_Init(uint32_t baud)
 	//配置USART为中断源
 	NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0; //抢断优先级	
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;	//子优先级
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;	//子优先级
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;	//使能中断
 	NVIC_Init(&NVIC_InitStructure);//初始化配置NVIC
 	
@@ -112,7 +112,7 @@ void USART1_IRQHandler(void)
 	if(USART_GetITStatus(USART1, USART_IT_RXNE) != RESET)  //接收中断
 	{
 		Res =USART_ReceiveData(USART1);	
-		
+		//printf("%d ",Res);
 		if(uart_db_rx_con < 3)    //==接收帧头 + 长度
 		{
 			if(uart_db_rx_con == 0)  //接收帧头1 0xAA
@@ -124,9 +124,10 @@ void USART1_IRQHandler(void)
 				}
 				else
 				{
-					
+					uart_db_rx_con = 0;		
 				}
-			}else if(uart_db_rx_con == 1) //接收帧头2 0x55
+			}
+			else if(uart_db_rx_con == 1) //接收帧头2 0x55
 			{
 				if(Res == 0x55)
 				{
@@ -160,15 +161,23 @@ void USART1_IRQHandler(void)
 				{	
 					//此处进行数据解析
 					uart_db_flag_rx_ok = 1;
-					
+					printf("OK\r\n");
 					//接收完成，恢复初始状态
 					uart_db_rx_con = 0;					
 				}
+
+				else 
+				{
+					uart_db_flag_rx_ok = 0;
+					uart_db_rx_con = 0;		
+					uart_db_rx_checksum=0;
+				}
+
 			}
 		}
 		
-    USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
 	} 
+	return;
 }
 
 /**

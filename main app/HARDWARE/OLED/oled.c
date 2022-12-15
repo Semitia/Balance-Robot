@@ -1,7 +1,4 @@
 //////////////////////////////////////////////////////////////////////////////////	 
-//±¾³ÌĞòÖ»¹©Ñ§Ï°Ê¹ÓÃ£¬Î´¾­×÷ÕßĞí¿É£¬²»µÃÓÃÓÚÆäËüÈÎºÎÓÃÍ¾
-//ÖĞ¾°Ô°µç×Ó
-//µêÆÌµØÖ·£ºhttp://shop73023976.taobao.com/?spm=2013.1.0.0.M4PqC2
 //
 //  ÎÄ ¼ş Ãû   : main.c
 //  °æ ±¾ ºÅ   : v2.0
@@ -16,8 +13,6 @@
 //              SCL   ½ÓPD6£¨SCL£©
 //              SDA   ½ÓPD7£¨SDA£©            
 //              ----------------------------------------------------------------
-//Copyright(C) ÖĞ¾°Ô°µç×Ó2014/3/16
-//All rights reserved
 //////////////////////////////////////////////////////////////////////////////////£
 
 #include "oled.h"
@@ -397,7 +392,7 @@ void OLED_Num3(unsigned char x,unsigned char y,int number)
 	}
 	else
 	{
-		OLED_fuhao_write(x,y,11);
+		OLED_fuhao_write(x,y,11);//fuhaoÊÇÖ¸·ûºÅ¶ø·Ç¸ººÅ£¬ÎÒÕæµÄ·şÁËÕâ¸ö×÷Õß£¬ÓĞµã´ô
 		ge = num %10;
 		shi = num/10 %10;
 		bai = num/100;
@@ -414,16 +409,20 @@ void OLED_Num4(unsigned char x,unsigned char y, int number)
 	if(num<0)
 	{
 		num=-num;
+		OLED_fuhao_write(x,y,13); //ÏÔÊ¾-ºÅ
 	}
+	else
+	{ OLED_fuhao_write(x,y,11); }
+	
 	qian=num/1000;
 	bai=num%1000/100;
 	shi=num%100/10;
 	ge=num%10;
 
-	OLED_Num_write(x,y,qian);
-	OLED_Num_write(x+1,y,bai);
-	OLED_Num_write(x+2,y,shi);
-	OLED_Num_write(x+3,y,ge);
+	OLED_Num_write(x+1,y,qian);
+	OLED_Num_write(x+2,y,bai);
+	OLED_Num_write(x+3,y,shi);
+	OLED_Num_write(x+4,y,ge);
 }
 
 void OLED_Num_write(unsigned char x,unsigned char y,unsigned char asc) 
@@ -518,7 +517,7 @@ void oled_first_show(void)
 	OLED_ShowString(90,1,"V",12);
 	OLED_ShowString(60,2,"R: ",12);	
 	OLED_ShowString(1,2,"L: ",12);
-	OLED_ShowString(0,6,"MODE :",12);
+	OLED_ShowString(0,7,"MODE :",12);
 	//OLED_ShowString(0,4,"TRACK:",12);
 }
 
@@ -535,10 +534,15 @@ void oled_show(void)
 			OLED_Float(0,56,pitch,3);			
 		}
 		OLED_Float(1,48,Voltage,2);						//ÏÔÊ¾µçÑ¹
-		OLED_Num2(14,6,Mode);					//ÏÔÊ¾ÓÒ±ßµç»úµÄ±àÂëÆ÷Öµ
+		OLED_Num2(14,7,Mode);					//ÏÔÊ¾ÓÒ±ßµç»úµÄ±àÂëÆ÷Öµ
 		OLED_Num3(14,2,Encoder_Right);					//ÏÔÊ¾ÓÒ±ßµç»úµÄ±àÂëÆ÷Öµ
 		OLED_Num3(4,2,Encoder_Left);					//ÏÔÊ¾×ó±ßµç»úµÄ±àÂëÆ÷Öµ
-		
+		OLED_ShowString(0,4,"V_PWM",12);
+		OLED_Num4(10,4,oled_v_pwm);
+		OLED_ShowString(0,5,"UP_PWM",12);
+		OLED_Num4(10,5,oled_up_pwm);		
+		OLED_ShowString(0,6,"Tr_PWM",12);
+		OLED_Num4(10,6,oled_turn_pwm);
 		switch(Mode)
 		{
 			case 97:

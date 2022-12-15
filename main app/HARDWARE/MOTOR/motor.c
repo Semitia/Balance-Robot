@@ -71,7 +71,7 @@ void Xianfu_Pwm(void)
 **************************************************************************/
 void Turn_Off(float angle, float voltage)
 {
-		if(angle<-40||angle>40||voltage<11.1)	 //电池电压低于11.1V关闭电机
+		if(angle<-30||angle>30||voltage<11.1)	 //电池电压低于11.1V关闭电机
 		{	                                   //===倾角大于40度关闭电机																			 
 				Moto1=0;
 				Moto2=0;

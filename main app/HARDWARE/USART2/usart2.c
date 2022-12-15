@@ -1,8 +1,5 @@
 #include "usart2.h"
-/**************************************************************************
- 作  者 ：大鱼电子
- 淘宝地址：https://shop119207236.taobao.com
-**************************************************************************/
+
 /**************************************************************************
 函数功能：串口2初始化
 入口参数： bound:波特率
@@ -45,6 +42,7 @@ void uart2_init(u32 bound)
 返回  值：无
 **************************************************************************/
 u8 Fore,Back,Left,Right;
+
 void USART2_IRQHandler(void)
 {
 	int Uart_Receive;
@@ -54,6 +52,7 @@ void USART2_IRQHandler(void)
 		BluetoothCMD(Uart_Receive);								
 	}
 }
+
 
 void BluetoothCMD(int Uart_Receive)
 {
@@ -90,6 +89,7 @@ void BluetoothCMD(int Uart_Receive)
 				Fore=0,Back=0,Left=0,Right=0;
 				break;
 		}
+	return;
 }
 
 void Uart2SendByte(char byte)   //串口发送一个字节
