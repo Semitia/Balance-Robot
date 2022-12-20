@@ -33,6 +33,8 @@ u8 SR04_Counter=0;
 u8 Voltage_Counter=0;
 u8 rec_data[18];
 short get_aacx, get_aacy, get_aacz;
+int n_cnt=0,tim_cnt[100]={0};
+u8 i;
 
 void EXTI9_5_IRQHandler(void) 
 {    
@@ -45,6 +47,16 @@ void EXTI9_5_IRQHandler(void)
 		Encoder_Left=Read_Encoder(2);                           //===读取编码器的值，因为两个电机的旋转了180度的，所以对其中一个取反，保证输出极性一致
 		Encoder_Right=-Read_Encoder(3);                           //===读取编码器的值
 		
+		/*
+		//检测中断函数实际调用频率
+		n_cnt++;
+		tim_cnt[n_cnt] = TIM1->CNT;
+		if(n_cnt >=50 )
+		{
+			n_cnt = 0;
+			for(i=1;i<=50;i++) {printf("%d\r\n",tim_cnt[i]);}
+		}
+		*/
 		
 		Voltage_Counter++;
 		if(Voltage_Counter>=200)									 //===100ms我觉得这是读取电池电压
@@ -264,10 +276,9 @@ void print(void)
 
 void data_receive(void)
 {
-//	u8 len;
 	if(USART_RX_STA&0x80)
 	{					   
-		//len=USART_RX_STA&0x3f;//得到此次接收到的数据长度
+		//printf("%d, %d\r\n", start_time, end_time);
 		balance_UP_KP = (float) ( 100*(USART_RX_BUF[0]-'0') + 10*(USART_RX_BUF[1]-'0') + (USART_RX_BUF[2]-'0') );
 		printf("UP_KP:%.0f, ",balance_UP_KP);
 		balance_UP_KD = (float)( (USART_RX_BUF[4]-'0') + 0.1*(USART_RX_BUF[5]-'0') + 0.01*(USART_RX_BUF[6]-'0') );
@@ -299,18 +310,25 @@ void data_receive3(void)
 		
 	//len=USART3_RX_STA&0x3f;//得到此次接收到的数据长度
 
-		balance_UP_KP = (float) ( 100*(USART_RX_BUF[0]-'0') + 10*(USART_RX_BUF[1]-'0') + (USART_RX_BUF[2]-'0') );
+		//printf("%d, %d\r\n", start_time, end_time);
+		balance_UP_KP = (float) ( 100*(USART3_RX_BUF[0]-'0') + 10*(USART3_RX_BUF[1]-'0') + (USART3_RX_BUF[2]-'0') );
 		printf("UP_KP:%.0f, ",balance_UP_KP);
-		balance_UP_KD = (float)( (USART_RX_BUF[4]-'0') + 0.1*(USART_RX_BUF[5]-'0') + 0.01*(USART_RX_BUF[6]-'0') );
+		balance_UP_KD = (float)( (USART3_RX_BUF[4]-'0') + 0.1*(USART3_RX_BUF[5]-'0') + 0.01*(USART3_RX_BUF[6]-'0') );
 		printf("UP_KD:%.2f, ",balance_UP_KD);
-		velocity_KP = -(float)( 100*(USART_RX_BUF[8]-'0') + 10*(USART_RX_BUF[9]-'0') + (USART_RX_BUF[10]-'0') );
+		velocity_KP = (float)( 100*(USART3_RX_BUF[8]-'0') + 10*(USART3_RX_BUF[9]-'0') + (USART3_RX_BUF[10]-'0') );
 		printf("V_KP:%.0f, ",velocity_KP);
-		velocity_KI = -(float)( (USART_RX_BUF[12]-'0') + 0.1*(USART_RX_BUF[13]-'0') + 0.01*(USART_RX_BUF[14]-'0') );
+		velocity_KI = (float)( (USART3_RX_BUF[12]-'0') + 0.1*(USART3_RX_BUF[13]-'0') + 0.01*(USART3_RX_BUF[14]-'0') );
 		printf("V_KI:%.2f, ",velocity_KI);
-		Mechanical_angle = (float)( (USART_RX_BUF[17]-'0') + 0.1*(USART_RX_BUF[18]-'0') + 0.01*(USART_RX_BUF[19]-'0') );
-		if(USART_RX_BUF[16]-'0' == 1) {Mechanical_angle *= -1;}
-		printf("Mechanical:%.2f\r\n",Mechanical_angle);
-
+		Mechanical_angle = (float)( (USART3_RX_BUF[17]-'0') + 0.1*(USART3_RX_BUF[18]-'0') + 0.01*(USART3_RX_BUF[19]-'0') );
+		if(USART3_RX_BUF[16]-'0' == 1) {Mechanical_angle *= -1;}
+		printf("Mechanical:%.2f, ",Mechanical_angle);
+		velocity_KD = (float)( 10*(USART3_RX_BUF[21]-'0') + (USART3_RX_BUF[22]-'0') + 0.1*(USART3_RX_BUF[23]-'0') );
+		printf("V_KD:%.1f, ",velocity_KD);
+		Turn_KP = (float)( (USART3_RX_BUF[25]-'0') + 0.1*(USART3_RX_BUF[26]-'0') + 0.01*(USART3_RX_BUF[27]-'0') );
+		printf("Turn_KP:%.2f, ",Turn_KP);
+		Turn_KI = (float)( (USART3_RX_BUF[29]-'0') + 0.1*(USART3_RX_BUF[30]-'0') + 0.01*(USART3_RX_BUF[31]-'0') );
+		printf("Turn_KI:%.2f\r\n",Turn_KI);
+		
 		USART3_RX_STA=0;
 	}
 	return;

@@ -35,7 +35,6 @@ int main(void)
 	uart2_init(115200);
 	uart3_init(115200);
 /*****************************************************************************/	
-	NVIC_Configuration();					 //=====中断优先级分组,其中包含了所有的中断优先级的配置,方便管理和一次性修改。
 	Adc_Init();                    //=====初始化ADC
 	//SR04_Configuration();
 	Encoder_Init_TIM2();           //=====初始化编码器2
@@ -44,17 +43,19 @@ int main(void)
 	OLED_Clear();									 //=====OLED清屏
 	MPU_Init();					    			 //=====初始化MPU6050
 	mpu_dmp_init();								 //=====初始化MPU6050的DMP模式					 
-	TIM1_PWM_Init(7199,0);   			 //=====初始化PWM 10KHZ,用于驱动电机。 
+	//TIM1_PWM_Init(7199,0);   			 //=====初始化PWM 10KHZ,用于驱动电机。 
+	TIM1_PWM_Init(10000,7199);
 	delay_ms(1000);								 //=====延时1s 解决小车上电轮子乱转的问题
 	Motor_Init();									 //=====初始化与电机连接的硬件IO接口 
 	MPU6050_EXTI_Init();					 //=====MPU6050 5ms定时中断初始化
+	NVIC_Configuration();					 //=====中断优先级分组,其中包含了所有的中断优先级的配置,方便管理和一次性修改。
 	oled_first_show();					   //只需要显示一次的字符,在此刷新一次即可。
 	//Timer4_Init(5000,7199);	    	 //=====超声波定时器初始化
 	while(1)	
 	{
 		oled_show();
 		//printf("PWMA:%d\r\n",PWMA);
-		delay_ms(500); //20HZ的显示频率，屏幕无需时刻刷新。
+		delay_ms(250); //20HZ的显示频率，屏幕无需时刻刷新。
 		LED = !LED;
 	}
 }
