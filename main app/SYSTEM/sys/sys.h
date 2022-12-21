@@ -1,15 +1,6 @@
 #ifndef __SYS_H
 #define __SYS_H	 
 
-/**************************************************************************
- 作  者 ：大鱼电子
- 淘宝地址：https://shop119207236.taobao.com
- 微信公众号【大鱼机器人】
- 后台回复【平衡小车】：获取平衡小车全套DIY资料
- 后台回复【电子开发工具】：获取电子工程师必备开发工具
- 后台回复【电子设计资料】：获取电子设计资料包
- 知乎：张巧龙 
-**************************************************************************/
 #include "stm32f10x.h"
 #include "delay.h"
 #include "usart.h"
@@ -32,7 +23,9 @@
 #include "inv_mpu_dmp_motion_driver.h"
 #include "SR04.h"
 #include "DataScope_DP.h"
-////////////////////////////////////////////////////////////////////////////
+#include "motion.h"
+#include "matrix.h"
+
 #include <string.h> 
 #include <stdio.h>
 #include <stdint.h>
@@ -74,6 +67,20 @@
 #endif
 
 #ifdef GM25370
+#define MECHI -1
+#define BLC_KP 300
+#define BLC_KD 1.5
+#define SPD_KP 30
+#define SPD_KI 0.15
+#define SPD_KD 0
+#define TURN_KP 1
+#define TURN_KD 0
+#define TURN_KI 0
+#endif
+
+/*
+
+#ifdef GM25370
 #define BLC_KP 240
 #define BLC_KD 0.75
 #define SPD_KP -60
@@ -81,6 +88,8 @@
 #define TURN_KP -20
 #define TURN_KD -0.6
 #endif
+
+*/
 //位带操作,实现51类似的GPIO控制功能
 //具体实现思想,参考<<CM3权威指南>>第五章(87页~92页).
 //IO口操作宏定义
@@ -149,7 +158,7 @@
 
 extern float Voltage;  													//电池电压采样相关的变量
 extern float pitch,roll,yaw; 										//欧拉角
-extern short aacx,aacy,aacz;										//加速度传感器原始数据
+extern float aacx,aacy,aacz;										//加速度传感器原始数据
 extern short gyrox,gyroy,gyroz;									//陀螺仪原始数据
 extern u8 Mode;      			//模式
 extern int Uart_Receive;
@@ -161,5 +170,7 @@ extern u8 TkSensor;
 extern float SR04_Distance;
 void NVIC_Configuration(void);//中断优先级设置
 void Tracking_Init(void);
+
+extern int oled_v_pwm, oled_up_pwm, oled_turn_pwm;
 #endif
 

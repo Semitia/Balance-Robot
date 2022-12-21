@@ -158,8 +158,12 @@ int balance_UP(float Angle,float Mechanical_balance,float Gyro)
 入口参数：电机编码器的值
 返回  值：速度控制PWM
 **************************************************************************/
+float filt_velocity;     //滤波后的速度
+float last_filt_velocity;//上一次的滤波后的速度
+float velocity_sum=0;    //速度的累加
 int velocity(int encoder_left,int encoder_right,int gyro_Z)
 {  
+	/*
 	static float Velocity,Encoder_Least,Encoder_error,last_error,d_error;
 	static float Encoder_Integral;
 	//=============速度PI控制器=======================//	
@@ -172,13 +176,24 @@ int velocity(int encoder_left,int encoder_right,int gyro_Z)
 	//Encoder_Integral=Encoder_Integral-gyro_Z;                       //===接收遥控器数据，控制前进后退
 	if(Encoder_Integral>10000)  	Encoder_Integral=10000;             //===积分限幅
 	if(Encoder_Integral<-10000)		Encoder_Integral=-10000;            //===积分限幅	
+	if(pitch<-40||pitch>40) 			Encoder_Integral=0;     						//===电机关闭后清除积分
 	
 	Velocity=Encoder_error*velocity_KP + Encoder_Integral*velocity_KI - d_error*velocity_KD;        //===速度控制	
-	if(pitch<-40||pitch>40) 			Encoder_Integral=0;     						//===电机关闭后清除积分
 	
 	last_error = Encoder_error;
 	//OLED_Num3(0,5,Encoder_Left);
 	return Velocity;
+	*/
+	int raw_velocity = (encoder_left + encoder_right)/2;
+	filt_velocity = 0.3*raw_velocity + 0.7*last_filt_velocity;
+	velocity_sum += filt_velocity;
+	
+	if(velocity_sum>10000)  	velocity_sum=10000;             //===积分限幅
+	if(velocity_sum<-10000)		velocity_sum=-10000;            //===积分限幅	
+	if(pitch<-40||pitch>40) 			velocity_sum=0;     						//===电机关闭后清除积分
+	last_filt_velocity = filt_velocity;
+	
+	return velocity_KP*filt_velocity + velocity_KI*velocity_sum;
 }
 /**************************************************************************
 函数功能：转向PD控制

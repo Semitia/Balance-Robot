@@ -23,7 +23,7 @@ void NVIC_Configuration(void)
 
 		//////////////////外部中断5优先级配置也就是MPU6050 INT引脚的配置///////////因为是控制中断，故此优先级应是最高。
 		NVIC_InitStructure.NVIC_IRQChannel = EXTI9_5_IRQn;				//使能外部中断通道
-		NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x00;	//抢占优先级0， 
+		NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x01;	//抢占优先级0， 
 		NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x01;					//子优先级1
 		NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;								//使能外部中断通道
 		NVIC_Init(&NVIC_InitStructure); 
@@ -37,15 +37,22 @@ void NVIC_Configuration(void)
 	
 		//////////////////Usart1 NVIC 中断优先级配置////////////////////////////////////
 		NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
-		NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority=0x02 ;//抢占优先级2
-		NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x02;			//抢占优先级2
+		NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority=0x00 ;//抢占优先级2
+		NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x00;			//抢占优先级2
 		NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;						//IRQ通道使能
 		NVIC_Init(&NVIC_InitStructure);														//根据NVIC_InitStruct中指定的参数初始化外设NVIC寄存器USART1
 
 		//////////////////Usart2 NVIC 中断优先级配置也就是蓝牙串口配置//////////////////
 		NVIC_InitStructure.NVIC_IRQChannel = USART2_IRQn;
-		NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority=0x02 ;//抢占优先级2
-		NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x02;		//子优先级2
+		NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority=0x00 ;//抢占优先级2
+		NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x00;		//子优先级2
+		NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;			//IRQ通道使能
+		NVIC_Init(&NVIC_InitStructure);	//根据指定的参数初始化VIC寄存器
+		
+		//////////////////Usart3 NVIC 中断优先级配置/////////////////
+		NVIC_InitStructure.NVIC_IRQChannel = USART3_IRQn;
+		NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority=0x00 ;//抢占优先级2
+		NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x00;		//子优先级2
 		NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;			//IRQ通道使能
 		NVIC_Init(&NVIC_InitStructure);	//根据指定的参数初始化VIC寄存器
 		 
