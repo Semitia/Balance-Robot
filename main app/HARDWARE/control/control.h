@@ -21,6 +21,7 @@ int Yaw_control(int gyro_Z, int encoder_left, int encoder_right);
 void Tracking(void);
 void print(void);
 void data_receive(void);
+void data_receive2(void);
 void data_receive3(void);
 void kalman(void);
 #endif

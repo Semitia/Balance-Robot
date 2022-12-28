@@ -57,7 +57,6 @@ void EXTI9_5_IRQHandler(void)
 			for(i=1;i<=50;i++) {printf("%d\r\n",tim_cnt[i]);}
 		}
 		*/
-		
 		Voltage_Counter++;
 		if(Voltage_Counter>=200)									 //===100ms我觉得这是读取电池电压
 		{
@@ -314,6 +313,37 @@ void data_receive(void)
 		
 		USART_RX_STA=0;
 	}
+	return;
+}
+
+void data_receive2(void)
+{
+	//u8 ACK_u8[200],i;
+	char ACK[200];
+	//u32 ACK_size;
+	if(!USART2_RX_FLAG)
+	{return;}
+	USART2_RX_FLAG = 0;
+	balance_UP_KP = (float) ( 100*(u1rxbuf[0]-'0') + 10*(u1rxbuf[1]-'0') + (u1rxbuf[2]-'0') );
+	sprintf(ACK, "UP_KP:%.0f, ",balance_UP_KP);
+	balance_UP_KD = (float)( (u1rxbuf[4]-'0') + 0.1*(u1rxbuf[5]-'0') + 0.01*(u1rxbuf[6]-'0') );
+	sprintf(ACK, "UP_KD:%.2f, ",balance_UP_KD);
+	velocity_KP = (float)( 100*(u1rxbuf[8]-'0') + 10*(u1rxbuf[9]-'0') + (u1rxbuf[10]-'0') );
+	sprintf(ACK, "V_KP:%.0f, ",velocity_KP);
+	velocity_KI = (float)( (u1rxbuf[12]-'0') + 0.1*(u1rxbuf[13]-'0') + 0.01*(u1rxbuf[14]-'0') );
+	sprintf(ACK, "V_KI:%.2f, ",velocity_KI);
+	Mechanical_angle = (float)( (u1rxbuf[17]-'0') + 0.1*(u1rxbuf[18]-'0') + 0.01*(u1rxbuf[19]-'0') );
+	if(u1rxbuf[16]-'0' == 1) {Mechanical_angle *= -1;}
+	sprintf(ACK, "Mechanical:%.2f, ",Mechanical_angle);
+	velocity_KD = (float)( 10*(u1rxbuf[21]-'0') + (u1rxbuf[22]-'0') + 0.1*(u1rxbuf[23]-'0') );
+	sprintf(ACK, "V_KD:%.1f, ",velocity_KD);
+	Turn_KP = (float)( (u1rxbuf[25]-'0') + 0.1*(u1rxbuf[26]-'0') + 0.01*(u1rxbuf[27]-'0') );
+	sprintf(ACK, "Turn_KP:%.2f, ",Turn_KP);
+	Turn_KI = (float)( (u1rxbuf[29]-'0') + 0.1*(u1rxbuf[30]-'0') + 0.01*(u1rxbuf[31]-'0') );
+	sprintf(ACK, "Turn_KI:%.2f\r\n",Turn_KI);
+	//ACK_size = sizeof(ACK);
+	//for(i=0;i<ACK_size;i++) ACK_u8[i] = (u8)ACK[i];
+	//DMA_USART2_Tx_Data(ACK_u8,ACK_size);
 	return;
 }
 

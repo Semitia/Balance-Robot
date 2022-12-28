@@ -23,8 +23,8 @@
 #include "inv_mpu_dmp_motion_driver.h"
 #include "SR04.h"
 #include "DataScope_DP.h"
-#include "motion.h"
-#include "matrix.h"
+//#include "motion.h"
+//#include "matrix.h"
 
 #include <string.h> 
 #include <stdio.h>

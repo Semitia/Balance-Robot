@@ -54,7 +54,7 @@ void EXTI15_10_IRQHandler(void)
 			while(GPIO_ReadInputDataBit(GPIOB,ECHO_PIN));	       				//等待低电平
 			TIM_Cmd(TIM4, DISABLE);			                         				//定时器4失能
 			SR04_Distance=TIM_GetCounter(TIM4)*1.7;						//计算距离&&SR04<150
-			//SR04_Distance++;
+			printf("%.2f\r\n",SR04_Distance);
 			EXTI_ClearITPendingBit(EXTI_Line11);  //清除EXTI2线路挂起位
 	}		
 
@@ -71,7 +71,6 @@ void SR04_StartMeasure(void)
   GPIO_SetBits(GPIOB,TRIG_PIN); 		  //送>10US的高电平RIG_PORT,TRIG_PIN这两个在define中有说
   delay_us(20);		                      //延时20US
   GPIO_ResetBits(GPIOB,TRIG_PIN);
-	
 }
 
 void Timer4_Init(u16 arr,u16 psc)

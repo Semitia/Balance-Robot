@@ -335,7 +335,7 @@
               <MiscControls></MiscControls>
               <Define>STM32F10X_MD,USE_STDPERIPH_DRIVER</Define>
               <Undefine></Undefine>
-              <IncludePath>..\HARDWARE\OLED;..\STM32F10x_FWLib\inc;..\SYSTEM\delay;..\HARDWARE\EXTI;..\SYSTEM\sys;..\HARDWARE\MPU6050;..\HARDWARE\MPU6050\eMPL;..\HARDWARE\ENCODER;..\HARDWARE\control;..\HARDWARE\USB_PlugIn;..\HARDWARE\LED;..\HARDWARE\PWM;..\HARDWARE\MOTOR;..\HARDWARE\PWM;..\HARDWARE\ADC;..\HARDWARE\USART2;..\HARDWARE\KEY;..\HARDWARE\SR04;..\HARDWARE\TIMER;C:\Keil_v5\ARM\Pack\ARM\CMSIS\4.3.0\CMSIS\Include;..\OBJ;..\HARDWARE\DataScope_DP;..\HARDWARE\AX_UART_DB;..\SYSTEM\usart;..\USER</IncludePath>
+              <IncludePath>..\HARDWARE\OLED;..\STM32F10x_FWLib\inc;..\SYSTEM\delay;..\HARDWARE\EXTI;..\SYSTEM\sys;..\HARDWARE\MPU6050;..\HARDWARE\MPU6050\eMPL;..\HARDWARE\ENCODER;..\HARDWARE\control;..\HARDWARE\USB_PlugIn;..\HARDWARE\LED;..\HARDWARE\PWM;..\HARDWARE\MOTOR;..\HARDWARE\PWM;..\HARDWARE\ADC;..\HARDWARE\USART2;..\HARDWARE\KEY;..\HARDWARE\SR04;..\HARDWARE\TIMER;C:\Keil_v5\ARM\Pack\ARM\CMSIS\4.3.0\CMSIS\Include;..\OBJ;..\HARDWARE\DataScope_DP;..\HARDWARE\AX_UART_DB;..\SYSTEM\usart;..\USER;..\HARDWARE\MOTION</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -504,6 +504,11 @@
               <FileType>1</FileType>
               <FilePath>..\HARDWARE\DataScope_DP\DataScope_DP.C</FilePath>
             </File>
+            <File>
+              <FileName>motion.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\MOTION\motion.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -618,6 +623,11 @@
               <FileName>stm32f10x_wwdg.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\STM32F10x_FWLib\src\stm32f10x_wwdg.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f10x_dma.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\STM32F10x_FWLib\src\stm32f10x_dma.c</FilePath>
             </File>
           </Files>
         </Group>

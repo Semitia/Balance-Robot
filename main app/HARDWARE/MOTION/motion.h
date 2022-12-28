@@ -31,8 +31,8 @@ typedef struct __state_t{
 }state_t;
 
 state_t next, past, now;//两个时刻的状态，要做全局变量；尽量取简短的单词
-void forward();
-void reverse();
+//void forward();
+//void reverse();
 void state_update(void);
 #endif
 

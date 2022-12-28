@@ -15,18 +15,19 @@ int Uart_Receive=0;
 u8 key=0;								 									 //按键的键值
 u8 TkSensor=0;
 /***********************************************************************/
+u8 buffer[USART2_MAX_TX_LEN]="Oh, nice to meet you!!\r\n";
+u32 buf_size;
+
 int main(void)	
 { 
 	LED_Init();                    //=====初始化与 LED 连接的IO
 	PlugIn_Init();										 //=====初始化与 USB 连接的IO
 	KEY_Init();                    //=====初始化与按键连接的IO
 	delay_init();	    	           //=====延时函数初始化	
-	uart1_init(115200);	          	 //=====串口1初始化
-	//uart2_init(9600);							 //=====串口2初始化即蓝牙初始化
-	uart2_init(9600);			
+	uart1_init(115200);	          	 //=====串口1初始化		
 	uart3_init(9600);
 	delay_ms(100);
-/*****************修改蓝牙的默认通信波特率以及蓝牙默认的名字******************/
+/*****************修改蓝牙的默认通信波特率以及蓝牙默认的名字*****************
 	Uart2SendStr("AT\r\n");
 	Uart2SendStr("AT+NAME333DayuRobot\r\n");//发送蓝牙模块指令--设置名字
 	delay_ms(100);	
@@ -34,31 +35,38 @@ int main(void)
 	delay_ms(100);		
 	uart2_init(115200);
 	uart3_init(115200);
-/*****************************************************************************/	
+****************************************************************************/	
 	Adc_Init();                    //=====初始化ADC
-	//SR04_Configuration();
+	SR04_Configuration();
 	Encoder_Init_TIM2();           //=====初始化编码器2
 	Encoder_Init_TIM3();
 	OLED_Init();                   //=====OLED初始化
 	OLED_Clear();									 //=====OLED清屏
 	MPU_Init();					    			 //=====初始化MPU6050
 	mpu_dmp_init();								 //=====初始化MPU6050的DMP模式					 
-	//TIM1_PWM_Init(7199,0);   			 //=====初始化PWM 10KHZ,用于驱动电机。 
-	TIM1_PWM_Init(10000,7199);
+	TIM1_PWM_Init(7199,0);   			 //=====初始化PWM 10KHZ,用于驱动电机。 
+	//TIM1_PWM_Init(10000,7199);
 	delay_ms(1000);								 //=====延时1s 解决小车上电轮子乱转的问题
 	Motor_Init();									 //=====初始化与电机连接的硬件IO接口 
 	MPU6050_EXTI_Init();					 //=====MPU6050 5ms定时中断初始化
 	NVIC_Configuration();					 //=====中断优先级分组,其中包含了所有的中断优先级的配置,方便管理和一次性修改。
 	oled_first_show();					   //只需要显示一次的字符,在此刷新一次即可。
-	//Timer4_Init(5000,7199);	    	 //=====超声波定时器初始化
+	Timer4_Init(5000,7199);	    	 //=====超声波定时器初始化
+	Initial_UART2(9600);
+	DMA1_USART2_Init( );
 	while(1)	
 	{
 		oled_show();
-		//printf("PWMA:%d\r\n",PWMA);
-		delay_ms(250); //20HZ的显示频率，屏幕无需时刻刷新。
+
+		buf_size = sizeof(buffer);
+		//DMA_USART2_Tx_Data(buffer,buf_size);
+		data_receive2();
+		delay_ms(500); //20HZ的显示频率，屏幕无需时刻刷新。
 		LED = !LED;
 	}
 }
+
+
 void Tracking_Init(void)
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
