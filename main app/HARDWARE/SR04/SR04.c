@@ -54,7 +54,7 @@ void EXTI15_10_IRQHandler(void)
 			while(GPIO_ReadInputDataBit(GPIOB,ECHO_PIN));	       				//等待低电平
 			TIM_Cmd(TIM4, DISABLE);			                         				//定时器4失能
 			SR04_Distance=TIM_GetCounter(TIM4)*1.7;						//计算距离&&SR04<150
-			printf("%.2f\r\n",SR04_Distance);
+			//printf("%.2f\r\n",SR04_Distance);
 			EXTI_ClearITPendingBit(EXTI_Line11);  //清除EXTI2线路挂起位
 	}		
 

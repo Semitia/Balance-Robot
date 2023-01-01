@@ -10,7 +10,7 @@
 
 
 int Balance_Pwm,Velocity_Pwm,Turn_Pwm,Turn_Kp;
-int oled_v_pwm, oled_up_pwm, oled_turn_pwm;
+int oled_v_pwm, oled_v_I, oled_up_pwm, oled_turn_pwm;
 
 float Mechanical_angle=MECHI; 
 float Target_Speed=0;	//期望速度（俯仰）。用于控制小车前进后退及其速度。
@@ -28,6 +28,8 @@ float velocity_KD=SPD_KD;
 float Turn_Kd=TURN_KD;//转向环KP、KD
 float Turn_KP=TURN_KP;
 float Turn_KI=TURN_KI;
+
+float Position_KP=0;
 
 u8 SR04_Counter=0;
 u8 Voltage_Counter=0;
@@ -160,6 +162,7 @@ int balance_UP(float Angle,float Mechanical_balance,float Gyro)
 float filt_velocity;     //滤波后的速度
 float last_filt_velocity;//上一次的滤波后的速度
 float velocity_sum=0;    //速度的累加
+float target_velocity=0, velocity_error, d_velocity_error, last_v_error;
 int velocity(int encoder_left,int encoder_right,int gyro_Z)
 {  
 	/*
@@ -185,14 +188,17 @@ int velocity(int encoder_left,int encoder_right,int gyro_Z)
 	*/
 	int raw_velocity = (encoder_left + encoder_right)/2;
 	filt_velocity = 0.3*raw_velocity + 0.7*last_filt_velocity;
-	velocity_sum += filt_velocity;
+	velocity_error  = filt_velocity - target_velocity;
+	velocity_sum += velocity_error;
+	d_velocity_error = velocity_error - last_v_error;
 	
 	if(velocity_sum>10000)  	velocity_sum=10000;             //===积分限幅
 	if(velocity_sum<-10000)		velocity_sum=-10000;            //===积分限幅	
 	if(pitch<-40||pitch>40) 			velocity_sum=0;     						//===电机关闭后清除积分
 	last_filt_velocity = filt_velocity;
 	
-	return velocity_KP*filt_velocity + velocity_KI*velocity_sum;
+	last_v_error = velocity_error;
+	return velocity_KP*velocity_error + velocity_KI*velocity_sum - velocity_KD*d_velocity_error;
 }
 /**************************************************************************
 函数功能：转向PD控制
@@ -220,6 +226,17 @@ int Yaw_control(int gyro_Z, int encoder_left, int encoder_right)//encoder_left_r
 	if(pitch<-30||pitch>30) 			error_sum=0;
 	
 	return -pwm_out;
+}
+/*
+*/
+int target_position = 0;
+void position_control()
+{
+	static int position = 0;
+//	int error;
+	position += Encoder_Left + Encoder_Right;
+	target_velocity = Position_KP*(target_position - position);
+	return;
 }
 
 void Tracking()
@@ -310,7 +327,9 @@ void data_receive(void)
 		printf("Turn_KP:%.2f, ",Turn_KP);
 		Turn_KI = (float)( (USART_RX_BUF[29]-'0') + 0.1*(USART_RX_BUF[30]-'0') + 0.01*(USART_RX_BUF[31]-'0') );
 		printf("Turn_KI:%.2f\r\n",Turn_KI);
-		
+		target_velocity = (float)( 100*(USART_RX_BUF[34]-'0') + 10*(USART_RX_BUF[35]-'0') + (USART_RX_BUF[36]-'0') );
+		if(USART_RX_BUF[33]-'0' == 1) {target_velocity *= -1;}
+		printf("velocity:%.0f\r\n",target_velocity);
 		USART_RX_STA=0;
 	}
 	return;

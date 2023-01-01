@@ -17,7 +17,6 @@ void DMA1_USART2_Init(void)
 {
 	DMA_InitTypeDef DMA1_Init;
 	NVIC_InitTypeDef NVIC_InitStructure;
-	
 	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1,ENABLE);						
 
 	//DMA通道6寄存器设置为缺省
@@ -46,7 +45,6 @@ void DMA1_USART2_Init(void)
 	DMA1_Init.DMA_M2M = DMA_M2M_Disable;								
 	//初始化
 	DMA_Init(DMA1_Channel6,&DMA1_Init);
-	
 
 	DMA_DeInit(DMA1_Channel7);											
 	DMA1_Init.DMA_PeripheralBaseAddr = (u32)(&USART2->DR);					
@@ -60,16 +58,14 @@ void DMA1_USART2_Init(void)
 	DMA1_Init.DMA_Mode = DMA_Mode_Normal;									
 	DMA1_Init.DMA_Priority = DMA_Priority_High; 							
 	DMA1_Init.DMA_M2M = DMA_M2M_Disable;									
-
 	DMA_Init(DMA1_Channel7,&DMA1_Init); 									
-	
 
 	NVIC_InitStructure.NVIC_IRQChannel = DMA1_Channel6_IRQn;				
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 3 ;				
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;					
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;						
 	NVIC_Init(&NVIC_InitStructure);											
- 
+
 	NVIC_InitStructure.NVIC_IRQChannel = DMA1_Channel7_IRQn;				
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 3 ;				
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
@@ -81,7 +77,7 @@ void DMA1_USART2_Init(void)
 
 	DMA_Cmd(DMA1_Channel6,ENABLE);           								
 	DMA_Cmd(DMA1_Channel7,DISABLE);           								
-	 
+
 	USART_DMACmd(USART2, USART_DMAReq_Tx, ENABLE);        					
 	USART_DMACmd(USART2, USART_DMAReq_Rx, ENABLE);        					
 }
@@ -93,7 +89,7 @@ void DMA1_USART2_Init(void)
 void Initial_UART2(unsigned long baudrate)
 {
 
- 	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_InitTypeDef GPIO_InitStructure;
 	USART_InitTypeDef USART_InitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure; 
 	
