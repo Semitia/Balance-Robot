@@ -18,6 +18,12 @@ int balance_UP(float Angle,float Mechanical_balance,float Gyro);
 int velocity(int encoder_left,int encoder_right,int target);
 int Turn_UP(int gyro_Z, int RC);
 int Yaw_control(int gyro_Z, int encoder_left, int encoder_right);
+
+float anya_position(void);
+float anya_velocity(void);
+int anya_balance(void);
+int anya_yaw(void);
+
 void Tracking(void);
 void print(void);
 void data_receive(void);

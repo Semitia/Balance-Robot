@@ -160,14 +160,14 @@ void DMA1_Channel7_IRQHandler(void)
 **/
 void USART2_IRQHandler(void)                	
 {
-	u8 *p;
+	//u8 *p;
 	if(USART_GetITStatus(USART2, USART_IT_IDLE) != RESET)	
 	{
 		USART_ReceiveData(USART2);
 		USART_ClearFlag(USART2,USART_FLAG_TC);		
 		DMA_Cmd(DMA1_Channel6, DISABLE );   						
 		USART2_RX_LEN = USART2_MAX_RX_LEN - DMA1_Channel6->CNDTR;	
-		p = u1rxbuf;
+		//p = u1rxbuf;
 		USART2_RX_FLAG=1;		
 		DMA1_Channel6->CNDTR = USART2_MAX_RX_LEN;					
 		DMA_Cmd(DMA1_Channel6, ENABLE);     						

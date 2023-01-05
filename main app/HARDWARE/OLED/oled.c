@@ -115,11 +115,11 @@ void OLED_WR_Byte(unsigned dat,unsigned cmd)
 {
 	if(cmd)
 	{
-   OLED_Write_IIC_Data(dat);
+		OLED_Write_IIC_Data(dat);
 	}
 	else
 	{
-   OLED_Write_IIC_Command(dat);
+		OLED_Write_IIC_Command(dat);
 	}
 }
 
@@ -256,10 +256,10 @@ void OLED_ShowNumber(u8 x,u8 y,u32 num,u8 len,u8 size2)
 			{
 				OLED_ShowChar(x+(size2/2)*t,y,' ',size2);
 				continue;
-			}else enshow=1; 
-		 	 
+			}
+			else enshow=1; 
 		}
-	 	OLED_ShowChar(x+(size2/2)*t,y,temp+'0',size2); 
+		OLED_ShowChar(x+(size2/2)*t,y,temp+'0',size2); 
 	}
 } 
 //显示一个字符号串
@@ -274,81 +274,81 @@ void OLED_ShowString(u8 x,u8 y,u8 *chr,u8 Char_Size)
 }
 void OLED_Float(unsigned char Y,unsigned char X,double real,unsigned char N) 
 {
-   unsigned char   i_Count=1;
-   unsigned char   n[12]={0};
-   long   j=1;  
-   int    real_int=0;
-   double decimal=0;
-   unsigned int   real_decimal=0;
-   if(real<0)
-	 {
-		 real_int=(int)(-real);
-	 }
-	 else
-	 {
-		 real_int=(int)real;
-   }
-	 decimal=real-real_int;
-   real_decimal=decimal*1e4;
-   while(real_int/10/j!=0)
-   {
-      j=j*10;i_Count++;  
-   } 
-   n[0]=(real_int/10000)%10; 
-   n[1]=(real_int/1000)%10;
-   n[2]=(real_int/100)%10;
-   n[3]=(real_int/10)%10;
-   n[4]=(real_int/1)%10; 
-   n[5]='.';
-   n[6]=(real_decimal/1000)%10;
-   n[7]=(real_decimal/100)%10;
-   n[8]=(real_decimal/10)%10;
-   n[9]=real_decimal%10;
-   n[6+N]='\0'; 
-   for(j=0;j<10;j++) n[j]=n[j]+16+32;
-	 if(real<0) 
-	 {		 
-		 i_Count+=1;
-		 n[5-i_Count]='-';
-	 }
-   n[5]='.';
-   n[6+N]='\0';   
-   OLED_ShowString(X,Y,&n[5-i_Count],12); 
+	unsigned char   i_Count=1;
+	unsigned char   n[12]={0};
+	long   j=1;  
+	int    real_int=0;
+	double decimal=0;
+	unsigned int   real_decimal=0;
+	if(real<0)
+		{
+			real_int=(int)(-real);
+		}
+		else
+		{
+			real_int=(int)real;
+	}
+		decimal=real-real_int;
+	real_decimal=decimal*1e4;
+	while(real_int/10/j!=0)
+	{
+		j=j*10;i_Count++;  
+	} 
+	n[0]=(real_int/10000)%10; 
+	n[1]=(real_int/1000)%10;
+	n[2]=(real_int/100)%10;
+	n[3]=(real_int/10)%10;
+	n[4]=(real_int/1)%10; 
+	n[5]='.';
+	n[6]=(real_decimal/1000)%10;
+	n[7]=(real_decimal/100)%10;
+	n[8]=(real_decimal/10)%10;
+	n[9]=real_decimal%10;
+	n[6+N]='\0'; 
+	for(j=0;j<10;j++) n[j]=n[j]+16+32;
+		if(real<0) 
+		{		 
+			i_Count+=1;
+			n[5-i_Count]='-';
+		}
+	n[5]='.';
+	n[6+N]='\0';   
+	OLED_ShowString(X,Y,&n[5-i_Count],12); 
 }
 
- void OLED_Float2(unsigned char Y,unsigned char X,double real,unsigned char N1,unsigned char N2) 
+void OLED_Float2(unsigned char Y,unsigned char X,double real,unsigned char N1,unsigned char N2) 
 {
-   unsigned char   i_Count=1;
-   unsigned char   n[12]={0};
-   long   j=1;  
-   unsigned int   real_int=0;
-   double decimal=0;
-   unsigned int   real_decimal=0;
-   X=X*8;
-   real_int=(int)real;
-   //Dis_Num(2,0,real_int,5);
-   decimal=real-real_int;
-   real_decimal=decimal*1e4;
-   //Dis_Num(2,6,real_decimal,4);
-   while(real_int/10/j!=0)
-   {
-      j=j*10;i_Count++;  
-   } 
-   n[0]=(real_int/10000)%10; 
-   n[1]=(real_int/1000)%10;
-   n[2]=(real_int/100)%10;
-   n[3]=(real_int/10)%10;
- 
-   n[5]='.';
-   n[6]=(real_decimal/1000)%10;
-   n[7]=(real_decimal/100)%10;
-   n[8]=(real_decimal/10)%10;
-   n[9]=real_decimal%10;
-   n[6+N2]='\0'; 
-   for(j=0;j<10;j++) n[j]=n[j]+16+32;
-   n[5]='.';
-   n[6+N2]='\0';   
-   OLED_ShowString(X,Y,&n[5-N1],12); 
+	unsigned char   i_Count=1;
+	unsigned char   n[12]={0};
+	long   j=1;  
+	unsigned int   real_int=0;
+	double decimal=0;
+	unsigned int   real_decimal=0;
+	X=X*8;
+	real_int=(int)real;
+	//Dis_Num(2,0,real_int,5);
+	decimal=real-real_int;
+	real_decimal=decimal*1e4;
+	//Dis_Num(2,6,real_decimal,4);
+	while(real_int/10/j!=0)
+	{
+		j=j*10;i_Count++;  
+	} 
+	n[0]=(real_int/10000)%10; 
+	n[1]=(real_int/1000)%10;
+	n[2]=(real_int/100)%10;
+	n[3]=(real_int/10)%10;
+
+	n[5]='.';
+	n[6]=(real_decimal/1000)%10;
+	n[7]=(real_decimal/100)%10;
+	n[8]=(real_decimal/10)%10;
+	n[9]=real_decimal%10;
+	n[6+N2]='\0'; 
+	for(j=0;j<10;j++) n[j]=n[j]+16+32;
+	n[5]='.';
+	n[6+N2]='\0';   
+	OLED_ShowString(X,Y,&n[5-N1],12); 
 }
 
 void OLED_Num2(unsigned char x,unsigned char y, int number)
@@ -360,24 +360,24 @@ void OLED_Num2(unsigned char x,unsigned char y, int number)
 		num=-num;
 		shi=num%100/10;
     ge=num%10;
-	  OLED_fuhao_write(x,y,13); 
+	OLED_fuhao_write(x,y,13); 
     OLED_Num_write(x+1,y,shi);
     OLED_Num_write(x+2,y,ge); 
-  } 
-  else
+	} 
+	else
 	{
 		shi=num%100/10;
     ge=num%10;
 		OLED_fuhao_write(x,y,11);
     OLED_Num_write(x+1,y,shi);
     OLED_Num_write(x+2,y,ge); 
-  }
-        
+	}
+    return;
 }
 
 void OLED_Num3(unsigned char x,unsigned char y,int number)
 {
-  unsigned char ge,shi,bai;
+	unsigned char ge,shi,bai;
 	int num =number;
 	if(num<0)
 	{
@@ -399,7 +399,7 @@ void OLED_Num3(unsigned char x,unsigned char y,int number)
 		OLED_Num_write(x+3,y,ge);
 		OLED_Num_write(x+2,y,shi);
 		OLED_Num_write(x+1,y,bai);
-  }
+	}
 }
 
 void OLED_Num4(unsigned char x,unsigned char y, int number)
@@ -531,18 +531,20 @@ void oled_show(void)
 		else	
 		{
 			OLED_ShowString(48,0,"+",12); 
-			OLED_Float(0,56,pitch,3);			
+			OLED_Float(0,56,now.pitch,3);			
 		}
 		OLED_Float(1,48,Voltage,2);						//显示电压
-		OLED_Num2(14,7,Mode);					//显示右边电机的编码器值
-		OLED_Num3(14,2,Encoder_Right);					//显示右边电机的编码器值
-		OLED_Num3(4,2,Encoder_Left);					//显示左边电机的编码器值
-		OLED_ShowString(0,4,"V_PWM",12);
-		OLED_Num4(10,4,oled_v_pwm);
+		//OLED_Num2(14,7,Mode);					//显示右边电机的编码器值
+		OLED_Num3(14,2,now.v_right);					//显示右边电机的编码器值
+		OLED_Num3(4 ,2,now.v_left);					//显示左边电机的编码器值
+		OLED_ShowString(0,4,"t_angl",12);
+		OLED_Float(4,64,oled_v,2);
 		OLED_ShowString(0,5,"UP_PWM",12);
 		OLED_Num4(10,5,oled_up_pwm);		
-		OLED_ShowString(0,6,"Tr_PWM",12);
-		OLED_Num4(10,6,oled_turn_pwm);
+		OLED_ShowString(0,6,"t_vel",12);
+		OLED_Float(6,64,oled_p,1);
+		OLED_ShowString(0,7,"V_err",12);
+		OLED_Float(7,64,oled_v_I,1);
 		switch(Mode)
 		{
 			case 97:

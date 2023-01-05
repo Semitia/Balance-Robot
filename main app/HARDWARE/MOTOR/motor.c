@@ -1,21 +1,21 @@
 #include "motor.h"
 /**************************************************************************
- 作  者 ：大鱼电子
- 淘宝地址：https://shop119207236.taobao.com
- 微信公众号【大鱼机器人】
- 后台回复【平衡小车】：获取平衡小车全套DIY资料
- 后台回复【电子开发工具】：获取电子工程师必备开发工具
- 后台回复【电子设计资料】：获取电子设计资料包
- 知乎：张巧龙 
+	作  者 ：大鱼电子
+	淘宝地址：https://shop119207236.taobao.com
+	微信公众号【大鱼机器人】
+	后台回复【平衡小车】：获取平衡小车全套DIY资料
+	后台回复【电子开发工具】：获取电子工程师必备开发工具
+	后台回复【电子设计资料】：获取电子设计资料包
+	知乎：张巧龙 
 **************************************************************************/
 void Motor_Init(void)
 {
-  GPIO_InitTypeDef GPIO_InitStructure;
-  RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE); //使能PB端口时钟
-  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12|GPIO_Pin_13|GPIO_Pin_14|GPIO_Pin_15;	//端口配置
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;      //推挽输出
+	GPIO_InitTypeDef GPIO_InitStructure;
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE); //使能PB端口时钟
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12|GPIO_Pin_13|GPIO_Pin_14|GPIO_Pin_15;	//端口配置
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;      //推挽输出
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;     //50MHZ
-  GPIO_Init(GPIOB, &GPIO_InitStructure);					      //根据设定参数初始化GPIOB 
+	GPIO_Init(GPIOB, &GPIO_InitStructure);					      //根据设定参数初始化GPIOB 
 	AIN1=0,AIN2=0;
 	BIN1=0,BIN1=0;
 }
@@ -46,10 +46,10 @@ void Set_Pwm(int moto1,int moto2)
 **************************************************************************/
 int myabs(int a)
 { 		   
-	  int temp;
-		if(a<0)  temp=-a;  
-	  else temp=a;
-	  return temp;
+	int temp;
+	if(a<0)  temp=-a;  
+	else temp=a;
+	return temp;
 }
 /**************************************************************************
 函数功能：限制PWM赋值 
@@ -60,9 +60,9 @@ void Xianfu_Pwm(void)
 {
 	 //===PWM满幅是7200 限制在7000
     if(Moto1<-7000 ) Moto1=-7000 ;
-		if(Moto1>7000 )  Moto1=7000 ;
-	  if(Moto2<-7000 ) Moto2=-7000 ;
-		if(Moto2>7000 )  Moto2=7000 ;
+	if(Moto1>7000 )  Moto1=7000 ;
+	if(Moto2<-7000 ) Moto2=-7000 ;
+	if(Moto2>7000 )  Moto2=7000 ;
 }
 /**************************************************************************
 函数功能：异常关闭电机

@@ -10,12 +10,16 @@
 
 
 int Balance_Pwm,Velocity_Pwm,Turn_Pwm,Turn_Kp;
-int oled_v_pwm, oled_v_I, oled_up_pwm, oled_turn_pwm;
+int oled_up_pwm, oled_turn_pwm;
+float oled_v,oled_p,oled_v_I;
+
 
 float Mechanical_angle=MECHI; 
-float Target_Speed=0;	//期望速度（俯仰）。用于控制小车前进后退及其速度。
+float target_speed=0;	//期望速度（俯仰）。用于控制小车前进后退及其速度。
 float Turn_Speed=0;		//期望速度（偏航）
 float Target_Yaw=0;
+float target_angle = MECHI;
+int target_position=0;
 
 //针对不同车型参数，在sys.h内设置define的电机类型
 float balance_UP_KP=BLC_KP; 	 // 小车直立环PD参数
@@ -29,7 +33,7 @@ float Turn_Kd=TURN_KD;//转向环KP、KD
 float Turn_KP=TURN_KP;
 float Turn_KI=TURN_KI;
 
-float Position_KP=0;
+float Position_KP=POSI_KP;
 
 u8 SR04_Counter=0;
 u8 Voltage_Counter=0;
@@ -43,12 +47,14 @@ void EXTI9_5_IRQHandler(void)
 	if(PBin(5)==0)
 	{
 		EXTI->PR=1<<5;                                           //===清除LINE5上的中断标志位   
-		mpu_dmp_get_data(&pitch,&roll,&yaw);										 //===得到欧拉角（姿态角）的数据
-		MPU_Get_Gyroscope(&gyrox,&gyroy,&gyroz);								 //===得到陀螺仪数据
+		//mpu_dmp_get_data(&pitch,&roll,&yaw);										 //===得到欧拉角（姿态角）的数据
+		//MPU_Get_Gyroscope(&gyrox,&gyroy,&gyroz);								 //===得到陀螺仪数据
 		//MPU_Get_Accelerometer(&get_aacx, &get_aacy, &get_aacz);
-		Encoder_Left=Read_Encoder(2);                           //===读取编码器的值，因为两个电机的旋转了180度的，所以对其中一个取反，保证输出极性一致
-		Encoder_Right=-Read_Encoder(3);                           //===读取编码器的值
+		//Encoder_Left=Read_Encoder(2);                           //===读取编码器的值，因为两个电机的旋转了180度的，所以对其中一个取反，保证输出极性一致
+		//Encoder_Right=-Read_Encoder(3);                           //===读取编码器的值
 		
+		state_update();
+
 		/*
 		//检测中断函数实际调用频率
 		n_cnt++;
@@ -59,85 +65,111 @@ void EXTI9_5_IRQHandler(void)
 			for(i=1;i<=50;i++) {printf("%d\r\n",tim_cnt[i]);}
 		}
 		*/
+	
 		Voltage_Counter++;
 		if(Voltage_Counter>=200)									 //===100ms我觉得这是读取电池电压
 		{
 			Voltage_Counter=0;
 			Voltage=Get_battery_volt();		                         //===读取电池电压
 		}
-		/*前后*/
-		switch(Mode)
-		{
-			case 97:
-				SR04_Counter++;
-				if(SR04_Counter>=20)									 //===100ms读取一次超声波的数据
-				{
-					SR04_Counter=0;
-					SR04_StartMeasure();												 //===读取超声波的值
-				}
-				break;
-			case 98://蓝牙模式
-				if((Fore==0)&&(Back==0))Target_Speed=0;//未接受到前进后退指令-->速度清零，稳在原地
-				if(Fore==1)Target_Speed--;//前进1标志位拉高-->需要前进
-				if(Back==1)Target_Speed++;//
-				/*左右*/
-				if((Left==0)&&(Right==0))Turn_Speed=0;
-				if(Left==1)Turn_Speed-=30;	//左转
-				if(Right==1)Turn_Speed+=30;	//右转
-				/*转向约束*/
-				if((Left==0)&&(Right==0))Turn_Kd=-0.6;//若无左右转向指令，则开启转向约束
-				else if((Left==1)||(Right==1))Turn_Kd=0;//若左右转向指令接收到，则去掉转向约束
-				break;
-			case 99://循迹模式
-				Tracking();
-				switch(TkSensor)
-				{
-					case 15:
-						Target_Speed=0;
-						Turn_Speed=0;
-						break;
-					case 9:
-						Target_Speed--;
-						Turn_Speed=0;
-						break;
-					case 2://向右转
-						Target_Speed--;
-						Turn_Speed=15;
-						break;
-					case 4://向左转
-						Target_Speed--;
-						Turn_Speed=-15;
-						break;
-					case 8:
-						Target_Speed=-10;
-						Turn_Speed=-80;
-						break;
-					case 1:
-						Target_Speed=-10;
-						Turn_Speed=80;
-						break;
-				}
-				break;
-		}
-			
-		Target_Speed=Target_Speed>SPEED_Y?SPEED_Y:(Target_Speed<-SPEED_Y?(-SPEED_Y):Target_Speed);//限幅
+		
+		
+		//target_speed=target_speed>SPEED_Y?SPEED_Y:(target_speed<-SPEED_Y?(-SPEED_Y):target_speed);//限幅
 		//Turn_Speed=Turn_Speed>SPEED_Z?SPEED_Z:(Turn_Speed<-SPEED_Z?(-SPEED_Z):Turn_Speed);//限幅( (20*100) * 100)
-			
-		Balance_Pwm =balance_UP(pitch,Mechanical_angle,gyroy);   //===直立环PID控制	
-		Velocity_Pwm=velocity(Encoder_Left,Encoder_Right,Target_Speed);       //===速度环PID控制	 
+		
+		//target_speed = anya_position();
+		target_angle = (float) anya_velocity() + MECHI;
+		Balance_Pwm  = anya_balance();
+		Turn_Pwm = anya_yaw();
+
+		//Balance_Pwm =balance_UP(pitch,Mechanical_angle,gyroy);   //===直立环PID控制	
+		//Velocity_Pwm=velocity(Encoder_Left,Encoder_Right,target_speed);       //===速度环PID控制	 
 		//Turn_Pwm =Turn_UP(gyroz,Turn_Speed);        //===转向环PID控制
-		Turn_Pwm = Yaw_control(gyroz,Encoder_Left,Encoder_Right);
-		Moto1=Balance_Pwm-Velocity_Pwm+Turn_Pwm;  	            //===计算左轮电机最终PWM
-		Moto2=Balance_Pwm-Velocity_Pwm-Turn_Pwm;                 //===计算右轮电机最终PWM
+		//Turn_Pwm = Yaw_control(gyroz,Encoder_Left,Encoder_Right);
+		Moto1=Balance_Pwm+Turn_Pwm;  	            //===计算左轮电机最终PWM
+		Moto2=Balance_Pwm-Turn_Pwm;                 //===计算右轮电机最终PWM
 	  Xianfu_Pwm();  																					 //===PWM限幅
-		Turn_Off(pitch,12);																 //===检查角度以及电压是否正常
+		Turn_Off(now.pitch,Voltage);																 //===检查角度以及电压是否正常
 		Set_Pwm(Moto1,Moto2);    //===赋值给PWM寄存器  
 		//kalman();
 		//print();
-		oled_v_pwm = Velocity_Pwm, oled_up_pwm = Balance_Pwm, oled_turn_pwm = Turn_Pwm;
+		oled_v = target_angle, oled_up_pwm = Balance_Pwm, oled_p = target_speed;
 		data_receive();
 		data_receive3();
 	}
+}
+
+
+void int_limit(int *x, float range)
+{
+	if(*x>range)  {*x = range;}
+	if(*x<-range) {*x = -range;}
+	return;
+}
+
+void float_limit(float *x, float range)
+{
+	if(*x>range)  {*x = range;}
+	if(*x<-range) {*x = -range;}
+	return;
+}
+
+int anya_balance(void)
+{
+	/*
+	float error;
+	int output;
+	error = now.pitch - target_angle;
+	output = balance_UP_KP*error + balance_UP_KD*(now.gyroy);
+	*/
+	return balance_UP_KP*(now.pitch - target_angle) + balance_UP_KD*(now.gyroy);
+}
+
+float anya_velocity(void)
+{
+	static float last_filted=0, last_v_err=0, v_error_sum=0,last_speed=0;
+	int raw_v = (int) now.v;
+	float filted = 0.3*raw_v + 0.7*last_filted;
+	float error  = filted - target_speed;
+	float d_v_err;
+
+	if(last_speed != target_speed) {v_error_sum = 0;}
+	v_error_sum += error;
+	d_v_err = error - last_v_err;
+	
+	if(v_error_sum>10000)		v_error_sum = 10000;             //===积分限幅
+	if(v_error_sum<-10000)		v_error_sum = -10000;            //===积分限幅	
+	if(pitch<-40||pitch>40)		v_error_sum = 0;     			 //===电机关闭后清除积分
+	
+	last_speed = target_speed;
+	last_filted = filted;
+	last_v_err = error;
+	oled_v_I = v_error_sum;
+	return (velocity_KP*error + velocity_KI*v_error_sum - velocity_KD*d_v_err)/200;
+}
+
+int anya_yaw(void)//encoder_left_right 是转速，而不是编码器累加值
+{
+	int pwm_out;
+	static int error = 0, tem_yaw=0;
+	static int error_sum = 0;
+	tem_yaw += (now.v_left - now.v_right);
+	error = tem_yaw - Target_Yaw;
+	error_sum += error;
+	pwm_out = Turn_KP*error  + Turn_KI*error_sum;
+	if(pitch<-30||pitch>30) 			error_sum=0;
+	
+	return -pwm_out;
+}
+
+float anya_position(void)
+{
+	static int position = 0;
+	float output;
+	position += Encoder_Left + Encoder_Right;
+	output = Position_KP*(target_position - position);
+	output = output>SPEED_Y?SPEED_Y:(output<-SPEED_Y?(-SPEED_Y):output);//限幅
+	return output;
 }
 
 /**************************************************************************
@@ -229,7 +261,6 @@ int Yaw_control(int gyro_Z, int encoder_left, int encoder_right)//encoder_left_r
 }
 /*
 */
-int target_position = 0;
 void position_control()
 {
 	static int position = 0;
@@ -327,9 +358,11 @@ void data_receive(void)
 		printf("Turn_KP:%.2f, ",Turn_KP);
 		Turn_KI = (float)( (USART_RX_BUF[29]-'0') + 0.1*(USART_RX_BUF[30]-'0') + 0.01*(USART_RX_BUF[31]-'0') );
 		printf("Turn_KI:%.2f\r\n",Turn_KI);
-		target_velocity = (float)( 100*(USART_RX_BUF[34]-'0') + 10*(USART_RX_BUF[35]-'0') + (USART_RX_BUF[36]-'0') );
-		if(USART_RX_BUF[33]-'0' == 1) {target_velocity *= -1;}
-		printf("velocity:%.0f\r\n",target_velocity);
+		target_speed = (float)( 100*(USART_RX_BUF[34]-'0') + 10*(USART_RX_BUF[35]-'0') + (USART_RX_BUF[36]-'0') );
+		if(USART_RX_BUF[33]-'0' == 1) {target_speed *= -1;}
+		printf("speed:%.0f, ",target_speed);
+		Position_KP = (float)( 1*(USART_RX_BUF[38]-'0') + 0.1*(USART_RX_BUF[39]-'0') + 0.01*(USART_RX_BUF[40]-'0') );
+		printf("P_KP:%.2f\r\n",Position_KP);
 		USART_RX_STA=0;
 	}
 	return;
@@ -343,6 +376,7 @@ void data_receive2(void)
 	if(!USART2_RX_FLAG)
 	{return;}
 	USART2_RX_FLAG = 0;
+	
 	balance_UP_KP = (float) ( 100*(u1rxbuf[0]-'0') + 10*(u1rxbuf[1]-'0') + (u1rxbuf[2]-'0') );
 	sprintf(ACK, "UP_KP:%.0f, ",balance_UP_KP);
 	balance_UP_KD = (float)( (u1rxbuf[4]-'0') + 0.1*(u1rxbuf[5]-'0') + 0.01*(u1rxbuf[6]-'0') );
@@ -360,6 +394,7 @@ void data_receive2(void)
 	sprintf(ACK, "Turn_KP:%.2f, ",Turn_KP);
 	Turn_KI = (float)( (u1rxbuf[29]-'0') + 0.1*(u1rxbuf[30]-'0') + 0.01*(u1rxbuf[31]-'0') );
 	sprintf(ACK, "Turn_KI:%.2f\r\n",Turn_KI);
+	printf("%s\r\n",ACK);
 	//ACK_size = sizeof(ACK);
 	//for(i=0;i<ACK_size;i++) ACK_u8[i] = (u8)ACK[i];
 	//DMA_USART2_Tx_Data(ACK_u8,ACK_size);
@@ -372,9 +407,9 @@ void data_receive3(void)
 	if(USART3_RX_STA&0x80)
 	{					   
 		
-	//len=USART3_RX_STA&0x3f;//得到此次接收到的数据长度
-
+		//len=USART3_RX_STA&0x3f;//得到此次接收到的数据长度
 		//printf("%d, %d\r\n", start_time, end_time);
+		/*
 		balance_UP_KP = (float) ( 100*(USART3_RX_BUF[0]-'0') + 10*(USART3_RX_BUF[1]-'0') + (USART3_RX_BUF[2]-'0') );
 		printf("UP_KP:%.0f, ",balance_UP_KP);
 		balance_UP_KD = (float)( (USART3_RX_BUF[4]-'0') + 0.1*(USART3_RX_BUF[5]-'0') + 0.01*(USART3_RX_BUF[6]-'0') );
@@ -392,7 +427,10 @@ void data_receive3(void)
 		printf("Turn_KP:%.2f, ",Turn_KP);
 		Turn_KI = (float)( (USART3_RX_BUF[29]-'0') + 0.1*(USART3_RX_BUF[30]-'0') + 0.01*(USART3_RX_BUF[31]-'0') );
 		printf("Turn_KI:%.2f\r\n",Turn_KI);
-		
+		*/
+		target_speed = (float)( 10*(USART3_RX_BUF[1]-'0') + (USART3_RX_BUF[2]-'0') + 0.1*(USART3_RX_BUF[3]-'0') );
+		if(USART3_RX_BUF[0]-'0' == 1) {target_speed *= -1;}
+		//printf("%.1f\r\n",target_speed);
 		USART3_RX_STA=0;
 	}
 	return;

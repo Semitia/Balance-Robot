@@ -49,6 +49,7 @@ void EXTI15_10_IRQHandler(void)
 	delay_us(10);		                      //延时10us
   if(EXTI_GetITStatus(EXTI_Line11) != RESET)
 	{
+		
 			TIM_SetCounter(TIM4,0);																		
 			TIM_Cmd(TIM4, ENABLE);                               				//开启时钟
 			while(GPIO_ReadInputDataBit(GPIOB,ECHO_PIN));	       				//等待低电平

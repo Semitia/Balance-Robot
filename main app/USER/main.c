@@ -1,10 +1,13 @@
 #include "sys.h"
-/****************************全局变量*************************************/    
-float Voltage;  															 //电池电压采样相关的变量
-float pitch,roll,yaw; 								  			 //欧拉角(姿态角)
+/****************************全局变量*************************************/  
+state_t past,next,now;
+
+float Voltage;  														 //电池电压采样相关的变量
+float pitch,roll,yaw; 								  					 //欧拉角(姿态角)
 float aacx,aacy,aacz;													 //加速度传感器原始数据
-short gyrox,gyroy,gyroz;											 //陀螺仪原始数据
-float SR04_Distance;                 //超声波测距
+short gyrox,gyroy,gyroz;											 	 //陀螺仪原始数据
+
+float SR04_Distance;                 									 //超声波测距
 
 int   Encoder_Left,Encoder_Right;         		 //左右编码器的脉冲计数
 int 	Moto1=0,Moto2=0;												 //计算出来的最终赋给电机的PWM
@@ -36,8 +39,16 @@ int main(void)
 	uart2_init(115200);
 	uart3_init(115200);
 ****************************************************************************/	
+	/*****************修改蓝牙的默认通信波特率以及蓝牙默认的名字******************/
+	Uart3SendStr("AT\r\n");
+	Uart3SendStr("AT+NAME333DayuRobot\r\n");//发送蓝牙模块指令--设置名字为：Bliz
+	delay_ms(100);	
+	Uart3SendStr("AT+BAUD8\r\n"); 		 //发送蓝牙模块指令,将波特率设置成115200
+	delay_ms(100);		
+	uart3_init(115200);
+/*****************************************************************************/	
 	Adc_Init();                    //=====初始化ADC
-	SR04_Configuration();
+	//SR04_Configuration();
 	Encoder_Init_TIM2();           //=====初始化编码器2
 	Encoder_Init_TIM3();
 	OLED_Init();                   //=====OLED初始化

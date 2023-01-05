@@ -15,9 +15,12 @@ void reverse()
 void state_update(void)
 {
 	float d_theta, d_x, d_y;
-	//mpu_dmp_get_data(&pitch,&roll,&yaw);
+
+	mpu_dmp_get_data(&(now.pitch),&(now.roll),&(now.yaw));										 //===得到欧拉角（姿态角）的数据
+	MPU_Get_Gyroscope(&(now.gyrox),&(now.gyroy),&(now.gyroz));
 	now.v_left  =  Read_Encoder(2);
 	now.v_right = -Read_Encoder(3);
+
 	now.v = (float) (now.v_left + now.v_right)/2;
 	now.w = (float) (now.v_right - now.v_left)/car_d;
 	now.R = (float) (now.v) / (now.w);

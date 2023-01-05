@@ -20,17 +20,9 @@ typedef struct __pisotion_t{
 }position_t;
 */
 
-//状态变量
-typedef struct __state_t{
-    float x, y, theta;//position and the direction of the car
-    int v_left;//左轮速度 velocity of the left wheel
-    int v_right;
-    float R;//轨迹半径 Radius of motion trajectory
-    float v;//车身速度 velocity of the car
-    float w;// angular velocity of the car
-}state_t;
 
-state_t next, past, now;//两个时刻的状态，要做全局变量；尽量取简短的单词
+
+//state_t next, past, now;//两个时刻的状态，要做全局变量；尽量取简短的单词
 //void forward();
 //void reverse();
 void state_update(void);
