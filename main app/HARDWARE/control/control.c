@@ -45,7 +45,7 @@ void EXTI9_5_IRQHandler(void)
 		EXTI->PR=1<<5;                                           //===清除LINE5上的中断标志位   
 		mpu_dmp_get_data(&pitch,&roll,&yaw);										 //===得到欧拉角（姿态角）的数据
 		MPU_Get_Gyroscope(&gyrox,&gyroy,&gyroz);								 //===得到陀螺仪数据
-		MPU_Get_Accelerometer(&get_aacx, &get_aacy, &get_aacz);
+		//MPU_Get_Accelerometer(&get_aacx, &get_aacy, &get_aacz);
 		Encoder_Left=Read_Encoder(2);                           //===读取编码器的值，因为两个电机的旋转了180度的，所以对其中一个取反，保证输出极性一致
 		Encoder_Right=-Read_Encoder(3);                           //===读取编码器的值
 		
