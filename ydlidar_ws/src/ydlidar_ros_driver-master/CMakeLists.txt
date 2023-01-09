@@ -69,6 +69,7 @@ link_directories(${YDLIDAR_SDK_LIBRARY_DIRS})
 #---------------------------------------------------------------------------------------
 add_executable(${PROJECT_NAME}_node src/ydlidar_ros_driver.cpp)
 add_executable(anya_sub src/anya_sub.cpp)
+add_executable(anya_pub src/anya_pub.cpp)
 
 #---------------------------------------------------------------------------------------
 # add projects that depend on
@@ -86,7 +87,10 @@ target_link_libraries(anya_sub
 	${catkin_LIBRARIES}
 	${YDLIDAR_SDK_LIBRARIES}
 )
-
+target_link_libraries(anya_pub
+	${catkin_LIBRARIES}
+	${YDLIDAR_SDK_LIBRARIES}
+)
 
 #---------------------------------------------------------------------------------------
 # Install
