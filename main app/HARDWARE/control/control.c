@@ -12,7 +12,7 @@
 int Balance_Pwm,Velocity_Pwm,Turn_Pwm,Turn_Kp;
 int oled_up_pwm, oled_turn_pwm;
 float oled_v,oled_p,oled_v_I;
-
+u8 motion_mode=0;
 
 float Mechanical_angle=MECHI; 
 float target_speed=0;	//期望速度（俯仰）。用于控制小车前进后退及其速度。
@@ -20,7 +20,7 @@ float Turn_Speed=0;		//期望速度（偏航）
 float Target_Yaw=0;
 float target_angle = MECHI;
 int target_position=0;
-
+float target_x=0, target_y=0;
 //针对不同车型参数，在sys.h内设置define的电机类型
 float balance_UP_KP=BLC_KP; 	 // 小车直立环PD参数
 float balance_UP_KD=BLC_KD;
@@ -47,12 +47,6 @@ void EXTI9_5_IRQHandler(void)
 	if(PBin(5)==0)
 	{
 		EXTI->PR=1<<5;                                           //===清除LINE5上的中断标志位   
-		//mpu_dmp_get_data(&pitch,&roll,&yaw);										 //===得到欧拉角（姿态角）的数据
-		//MPU_Get_Gyroscope(&gyrox,&gyroy,&gyroz);								 //===得到陀螺仪数据
-		//MPU_Get_Accelerometer(&get_aacx, &get_aacy, &get_aacz);
-		//Encoder_Left=Read_Encoder(2);                           //===读取编码器的值，因为两个电机的旋转了180度的，所以对其中一个取反，保证输出极性一致
-		//Encoder_Right=-Read_Encoder(3);                           //===读取编码器的值
-		
 		state_update();
 
 		/*
@@ -82,10 +76,6 @@ void EXTI9_5_IRQHandler(void)
 		Balance_Pwm  = anya_balance();
 		Turn_Pwm = anya_yaw();
 
-		//Balance_Pwm =balance_UP(pitch,Mechanical_angle,gyroy);   //===直立环PID控制	
-		//Velocity_Pwm=velocity(Encoder_Left,Encoder_Right,target_speed);       //===速度环PID控制	 
-		//Turn_Pwm =Turn_UP(gyroz,Turn_Speed);        //===转向环PID控制
-		//Turn_Pwm = Yaw_control(gyroz,Encoder_Left,Encoder_Right);
 		Moto1=Balance_Pwm+Turn_Pwm;  	            //===计算左轮电机最终PWM
 		Moto2=Balance_Pwm-Turn_Pwm;                 //===计算右轮电机最终PWM
 	  Xianfu_Pwm();  																					 //===PWM限幅
@@ -186,89 +176,6 @@ int balance_UP(float Angle,float Mechanical_balance,float Gyro)
 	return balance;
 }
 
-/**************************************************************************
-函数功能：速度PI控制
-入口参数：电机编码器的值
-返回  值：速度控制PWM
-**************************************************************************/
-float filt_velocity;     //滤波后的速度
-float last_filt_velocity;//上一次的滤波后的速度
-float velocity_sum=0;    //速度的累加
-float target_velocity=0, velocity_error, d_velocity_error, last_v_error;
-int velocity(int encoder_left,int encoder_right,int gyro_Z)
-{  
-	/*
-	static float Velocity,Encoder_Least,Encoder_error,last_error,d_error;
-	static float Encoder_Integral;
-	//=============速度PI控制器=======================//	
-	Encoder_error = (Encoder_Left+Encoder_Right)-Target_Speed;                    //===获取最新速度偏差==测量速度（左右编码器之和）-目标速度 
-	//Encoder *= 0.8;		                                                //===一阶低通滤波器       
-	//Encoder += Encoder_Least*0.2;	                                    //===一阶低通滤波器    
-	//Encoder = Encoder_Least;
-	d_error = Encoder_error - last_error;
-	Encoder_Integral += Encoder_error;                                       //===积分出位移 积分时间：10ms
-	//Encoder_Integral=Encoder_Integral-gyro_Z;                       //===接收遥控器数据，控制前进后退
-	if(Encoder_Integral>10000)  	Encoder_Integral=10000;             //===积分限幅
-	if(Encoder_Integral<-10000)		Encoder_Integral=-10000;            //===积分限幅	
-	if(pitch<-40||pitch>40) 			Encoder_Integral=0;     						//===电机关闭后清除积分
-	
-	Velocity=Encoder_error*velocity_KP + Encoder_Integral*velocity_KI - d_error*velocity_KD;        //===速度控制	
-	
-	last_error = Encoder_error;
-	//OLED_Num3(0,5,Encoder_Left);
-	return Velocity;
-	*/
-	int raw_velocity = (encoder_left + encoder_right)/2;
-	filt_velocity = 0.3*raw_velocity + 0.7*last_filt_velocity;
-	velocity_error  = filt_velocity - target_velocity;
-	velocity_sum += velocity_error;
-	d_velocity_error = velocity_error - last_v_error;
-	
-	if(velocity_sum>10000)  	velocity_sum=10000;             //===积分限幅
-	if(velocity_sum<-10000)		velocity_sum=-10000;            //===积分限幅	
-	if(pitch<-40||pitch>40) 			velocity_sum=0;     						//===电机关闭后清除积分
-	last_filt_velocity = filt_velocity;
-	
-	last_v_error = velocity_error;
-	return velocity_KP*velocity_error + velocity_KI*velocity_sum - velocity_KD*d_velocity_error;
-}
-/**************************************************************************
-函数功能：转向PD控制
-入口参数：电机编码器的值、Z轴角速度
-返回  值：转向控制PWM
-**************************************************************************/
-
-int Turn_UP(int gyro_Z, int RC)
-{
-	int PWM_out;
-	
-	PWM_out=Turn_Kd*gyro_Z + Turn_KP*RC;
-	return PWM_out;
-}
-
-int Yaw_control(int gyro_Z, int encoder_left, int encoder_right)//encoder_left_right 是转速，而不是编码器累加值
-{
-	int pwm_out;
-	static int error = 0, tem_yaw=0;
-	static int error_sum = 0;
-	tem_yaw += (encoder_left - encoder_right);
-	error = tem_yaw - Target_Yaw;
-	error_sum += error;
-	pwm_out = Turn_KP*error  + Turn_KI*error_sum;
-	if(pitch<-30||pitch>30) 			error_sum=0;
-	
-	return -pwm_out;
-}
-/*
-*/
-void position_control()
-{
-	static int position = 0;
-//	int error;
-	position += Encoder_Left + Encoder_Right;
-	target_velocity = Position_KP*(target_position - position);
-	return;
-}
 
 void Tracking()
 {
@@ -336,11 +243,44 @@ void print(void)
 	}	
 }
 
+u8 warn=0;
 void data_receive(void)
 {
 	if(USART_RX_STA&0x80)
-	{					   
+	{
+		
+		u8 msg_type;
+		msg_type = USART_RX_BUF[0]-'0';
+		switch(msg_type)
+		{
+			case WARN_MSG:
+			{
+				warn = 100*(USART_RX_BUF[1]-'0') + 10*(USART_RX_BUF[2]-'0') + (USART_RX_BUF[3]-'0');
+				printf("DEGUB:warn=%u\r\n",warn);
+				DMA_USART2_Tx_Data(&warn,1);
+				break;
+			}
+			case SPD_MSG:
+			{
+
+				break;
+			}
+			case POS_MSG:
+			{
+
+				target_x = 100*(USART_RX_BUF[1]-'0') + 10*(USART_RX_BUF[2]-'0') + (USART_RX_BUF[3]-'0') + 0.1*(USART_RX_BUF[4]-'0');
+				target_y = 100*(USART_RX_BUF[5]-'0') + 10*(USART_RX_BUF[6]-'0') + (USART_RX_BUF[7]-'0') + 0.1*(USART_RX_BUF[8]-'0');
+				break;
+			}
+			case PARA_MSG:
+			{
+
+				break;
+			}
+		}
+		
 		//printf("%d, %d\r\n", start_time, end_time);
+		/*		
 		balance_UP_KP = (float) ( 100*(USART_RX_BUF[0]-'0') + 10*(USART_RX_BUF[1]-'0') + (USART_RX_BUF[2]-'0') );
 		printf("UP_KP:%.0f, ",balance_UP_KP);
 		balance_UP_KD = (float)( (USART_RX_BUF[4]-'0') + 0.1*(USART_RX_BUF[5]-'0') + 0.01*(USART_RX_BUF[6]-'0') );
@@ -363,6 +303,8 @@ void data_receive(void)
 		printf("speed:%.0f, ",target_speed);
 		Position_KP = (float)( 1*(USART_RX_BUF[38]-'0') + 0.1*(USART_RX_BUF[39]-'0') + 0.01*(USART_RX_BUF[40]-'0') );
 		printf("P_KP:%.2f\r\n",Position_KP);
+		*/
+		
 		USART_RX_STA=0;
 	}
 	return;

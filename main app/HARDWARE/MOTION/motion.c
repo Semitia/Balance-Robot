@@ -1,4 +1,5 @@
 #include "motion.h"
+extern u8 warn;
 
 void forward()
 {
@@ -10,6 +11,40 @@ void reverse()
 {
 
 	return;
+}
+
+/**
+ * @brief give the move command rely on car's position and target position
+ * 1:前进
+ * 2:顺时针转
+ * 3:逆时针转
+ * @param tx target x
+ * @param ty target y
+ * @return move command
+ */
+u8 plan(float tx,float ty)
+{
+	u8 i;
+	bool wall[8];
+	float tar_yaw = atan((ty-now.y)/(tx-now.x));//angle
+
+	for(i=0;i<8;i++)
+	{
+		if((warn>>i)&0x01) 
+		{ wall[i] = true; }
+	}
+
+	if (abs(tar_yaw - now.yaw)<YAW_THR) 
+	{
+		if(!wall[front])
+		{return 1;}
+		else if(!wall[left])
+		{
+			//更改now.move_cmd
+		}
+	}
+	else if(tar_yaw < now.yaw) {return 2;}
+	else {return 3;}
 }
 
 void state_update(void)

@@ -4,6 +4,9 @@
 
 #define car_d 10
 #define delta_t 0.01
+
+//the Threshold of yaw control 进行转向命令的角度差阈值
+#define YAW_THR 5
 /*
 //车身参数
 typedef struct __car_t{

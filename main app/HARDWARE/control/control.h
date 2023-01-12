@@ -13,6 +13,15 @@
 #define ACCY_FIX -200
 #define ACCZ_FIX 16000
 #define PI 3.14159265
+
+#define WARN_MSG 0 //warn
+#define SPD_MSG  1 //speed
+#define POS_MSG  2 //position
+#define PARA_MSG 3 // param
+#define SPD_MODE 0
+#define POS_MODE 1
+
+
 void EXTI9_5_IRQHandler(void);
 int balance_UP(float Angle,float Mechanical_balance,float Gyro);
 int velocity(int encoder_left,int encoder_right,int target);
