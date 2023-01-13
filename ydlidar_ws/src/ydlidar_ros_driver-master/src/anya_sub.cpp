@@ -16,6 +16,8 @@
 #define DES_MSG  5 //destination
 #define WARN_RANGE 2//产生warn的距离阈值
 #define PI 3.1315926
+#define BES_VALUE 10//value of going to the unit beside car
+#define COR_VALUE 14//value of going to the unit on the corner
 
 typedef struct __data_t{
     int x,y;
@@ -33,7 +35,8 @@ enum direction {back, back_right, right, front_right, front, front_left, left, b
 const int dir_angle[8] = {PI, -3*PI/4, -PI/2, -PI/4, 0, PI/4, PI/2, 3*PI/4};
 unsigned char warn = 0;
 float warn_log[8]; //生成警告的最短range
-bool map[100][100];//地图，分辨率为1分米，范围即为10mx10m
+bool map[100][100];//地图，分辨率为1分米，范围即为10mx10m：0可走，1为障碍物
+bool open_flag[100][100],close_flag[100][100];//record if the unit has been add to any list.
 int pos_x,pos_y,des_x,des_y;//车子坐标格子，目的地格子
 float angle;//车身朝向
 
@@ -80,7 +83,7 @@ int tr_m(float t)
 unit_t *o_list;
 unit_t *c_list;
 
-void insert(unit_t *list, data_t new_data, unit_t *fa)
+void insert_node(unit_t *list, data_t new_data, unit_t *fa)
 {
     unit_t *p;//插入的节点
     p = (unit_t*)malloc(sizeof(unit_t));
@@ -90,7 +93,15 @@ void insert(unit_t *list, data_t new_data, unit_t *fa)
     p->next->last = p;
     list->next = p;
     p->last = list;
+
     return;
+}
+
+void delete_node(unit_t *p)
+{
+    p->last->next = p->next;
+    p->next->last = p->last;
+    free(p);
 }
 
 void A_star_init()
@@ -105,17 +116,18 @@ void A_star_init()
     data.H = 0;
     data.x = pos_x;
     data.y = pos_y;
-    insert(o_list,data,NULL);
-    
-    unit_t *c_head,*c_end,*c_normal;
-    c_head = (unit_t*)malloc(sizeof(unit_t));
-    c_end = c_head;
-    c_end->next = NULL;
-    c_head->father = NULL;
+    insert_node(o_list,data,NULL);
+    open_flag[pos_x][pos_y] = true;
 
-
+    c_list = (unit_t*)malloc(sizeof(unit_t));
+    c_list->father = NULL;
+    c_list->last = NULL;
+    c_list->next = NULL;
+    return;
 }
 
+//需要与enum那里的顺序保持一致
+const int around[8][2] = {{0,-1},{1,-1},{1,0},{1,1},{0,1},{-1,1},{-1,0},{-1,-1}};
 /**
  * @brief give the move command
  * 1:stop
@@ -127,7 +139,51 @@ void A_star_init()
  */
 int A_star()
 {
+    unit_t *p_min = o_list->next;//找F值最小的节点
+    if((pos_x==des_x) && (pos_y==des_y)) {return 1;}
+    for(unit_t *p = o_list->next; p!=NULL; p = p->next)
+    {
+        if(p_min->data.F > p->data.F) {p_min = p;}
+    }
 
+    for(int i=0; i<8; i++)
+    {
+        data_t find;
+        find.x = p_min->data.x + around[i][0];
+        find.y = p_min->data.y + around[i][1];
+        
+        if(map[find.x][find.y] || close_flag[find.x][find.y]) {continue;}
+
+        if(i%2) {find.G = p_min->data.G+COR_VALUE;}//奇数对应斜角
+        else    {find.G = p_min->data.G+BES_VALUE;}
+        find.H = abs(des_x-find.x) + abs(des_y-find.y); 
+        if(open_flag[find.x][find.y]) 
+        {
+            //寻找这个节点
+            unit_t *find_p;
+            for(unit_t *p=o_list->next; p!=NULL; p=p->next)
+            {
+                if((p->data.x==find.x) && p->data.y==find.y) 
+                {
+                    find_p=p;
+                    break;
+                }
+            }
+
+            if(find.G < find_p->data.G)
+            {
+                find_p->data.G = find.G;
+                find_p->data.F = find.G + find.H;
+                find_p->father = p_min;
+            }
+
+        }
+        else
+        {
+            insert_node(o_list,find,p_min);
+        }
+
+    }
 }
 
 void timer_callback(const ros::TimerEvent&)
