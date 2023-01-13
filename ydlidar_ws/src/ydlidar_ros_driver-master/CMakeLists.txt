@@ -1,6 +1,5 @@
 # Copyright(c) 2020 eaibot limited.
 cmake_minimum_required(VERSION 2.8)
-
 project(ydlidar_ros_driver)
 
 
@@ -18,7 +17,9 @@ find_package(catkin REQUIRED COMPONENTS
 	roscpp
 	rospy
 	sensor_msgs
-	)
+	std_msgs
+	serial
+)
 
 ##################LaserFan ##########################
 #add_message_files(DIRECTORY msg
@@ -40,8 +41,8 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(CATKIN_DEPENDS
-	roscpp rospy sensor_msgs message_runtime
-	)
+	roscpp rospy sensor_msgs message_runtime serial std_msgs
+)
 #---------------------------------------------------------------------------------------
 # Set default build to release
 #---------------------------------------------------------------------------------------
@@ -57,7 +58,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 #Include directories
-include_directories(${catkin_INCLUDE_DIRS} ${YDLIDAR_SDK_INCLUDE_DIRS})
+include_directories(
+	include
+	${catkin_INCLUDE_DIRS} 
+	${YDLIDAR_SDK_INCLUDE_DIRS}
+)
 
 #link library directories
 link_directories(${YDLIDAR_SDK_LIBRARY_DIRS})
