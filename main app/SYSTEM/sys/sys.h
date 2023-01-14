@@ -23,7 +23,7 @@
 #include "inv_mpu_dmp_motion_driver.h"
 #include "SR04.h"
 #include "DataScope_DP.h"
-//#include "motion.h"
+#include "motion.h"
 //#include "matrix.h"
 
 #include <string.h> 
@@ -31,6 +31,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include <math.h>
 
 //根据自己的电机选择，只能有一个电机类型define生效
@@ -67,15 +68,16 @@
 #endif
 
 #ifdef GM25370
-#define MECHI -1
-#define BLC_KP 300
+#define MECHI -5
+#define BLC_KP 400
 #define BLC_KD 1.5
-#define SPD_KP 30
-#define SPD_KI 0.15
-#define SPD_KD 0
+#define SPD_KP 80
+#define SPD_KI 0.3
+#define SPD_KD 6
 #define TURN_KP 1
 #define TURN_KD 0
 #define TURN_KI 0
+#define POSI_KP 0
 #endif
 
 /*
@@ -112,7 +114,7 @@
 #define GPIOE_IDR_Addr    (GPIOE_BASE+8) //0x40011808 
 #define GPIOF_IDR_Addr    (GPIOF_BASE+8) //0x40011A08 
 #define GPIOG_IDR_Addr    (GPIOG_BASE+8) //0x40011E08 
- 
+
 //IO口操作,只对单一的IO口!
 //确保n的值小于16!
 #define PAout(n)   BIT_ADDR(GPIOA_ODR_Addr,n)  //输出 
@@ -154,15 +156,35 @@
 #define SWD_ENABLE         0X01
 #define JTAG_SWD_ENABLE    0X00	
 
+//????
+typedef struct __state_t{
+    float x, y, theta;//position and the direction of the car
+    float pitch,roll,yaw;//???(???)
+    float aacx,aacy,aacz;//??????????
+    short gyrox,gyroy,gyroz;//???????
+    int v_left;//???? velocity of the left wheel
+    int v_right;
+    float R;//???? Radius of motion trajectory
+    float v;//???? velocity of the car
+    float w;// angular velocity of the car
+    u8 move_cmd;
+}state_t;
 
+typedef struct __output_t{
+    
+    int Balance_Pwm,Velocity_Pwm,Turn_Pwm,Turn_Kp;
+    int oled_v_pwm, oled_v_I, oled_up_pwm, oled_turn_pwm;
+}output_t;
 
-extern float Voltage;  													//电池电压采样相关的变量
+enum direction {back, back_right, right, front_right, front, front_left, left, back_left};
+
+extern float Voltage;  												//电池电压采样相关的变量
 extern float pitch,roll,yaw; 										//欧拉角
 extern float aacx,aacy,aacz;										//加速度传感器原始数据
-extern short gyrox,gyroy,gyroz;									//陀螺仪原始数据
+extern short gyrox,gyroy,gyroz;									    //陀螺仪原始数据
 extern u8 Mode;      			//模式
 extern int Uart_Receive;
-extern int   Encoder_Left,Encoder_Right;        //左右编码器的脉冲计数
+extern int   Encoder_Left,Encoder_Right;                            //左右编码器的脉冲计数
 extern int 	 Moto1,Moto2;										    //计算出来的最终赋给电机的PWM
 extern int Velocity,Turn;
 extern u8 Fore,Back,Left,Right;
@@ -171,6 +193,8 @@ extern float SR04_Distance;
 void NVIC_Configuration(void);//中断优先级设置
 void Tracking_Init(void);
 
-extern int oled_v_pwm, oled_up_pwm, oled_turn_pwm;
+extern int  oled_up_pwm;
+extern float oled_v, oled_p,oled_v_I;
+extern state_t past,next,now;
 #endif
 

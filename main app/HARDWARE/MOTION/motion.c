@@ -41,10 +41,12 @@ u8 plan(float tx,float ty)
 		else if(!wall[left])
 		{
 			//更改now.move_cmd
+			return 3;
 		}
 	}
 	else if(tar_yaw < now.yaw) {return 2;}
 	else {return 3;}
+	return 0;//先随便写的
 }
 
 void state_update(void)

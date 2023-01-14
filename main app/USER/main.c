@@ -13,7 +13,7 @@ int   Encoder_Left,Encoder_Right;         		 //左右编码器的脉冲计数
 int 	Moto1=0,Moto2=0;												 //计算出来的最终赋给电机的PWM
 
 int Velocity=0,Turn=0;
-u8 Mode=97; //97超声波避障；98蓝牙；99红外循迹；100 PS2
+u8 Mode=0; //0静止，1速度控制，2位置控制，3位置控制（避障）
 int Uart_Receive=0;
 u8 key=0;								 									 //按键的键值
 u8 TkSensor=0;
@@ -24,10 +24,11 @@ u32 buf_size;
 int main(void)	
 { 
 	LED_Init();                    //=====初始化与 LED 连接的IO
-	PlugIn_Init();										 //=====初始化与 USB 连接的IO
+	PlugIn_Init();								 //=====初始化与 USB 连接的IO
 	KEY_Init();                    //=====初始化与按键连接的IO
 	delay_init();	    	           //=====延时函数初始化	
-	uart1_init(115200);	          	 //=====串口1初始化		
+	uart1_init(115200);	           //=====串口1初始化		
+	DMA1_USART2_Init( );
 	uart3_init(9600);
 	delay_ms(100);
 /*****************修改蓝牙的默认通信波特率以及蓝牙默认的名字*****************
@@ -41,7 +42,7 @@ int main(void)
 ****************************************************************************/	
 	/*****************修改蓝牙的默认通信波特率以及蓝牙默认的名字******************/
 	Uart3SendStr("AT\r\n");
-	Uart3SendStr("AT+NAME333DayuRobot\r\n");//发送蓝牙模块指令--设置名字为：Bliz
+	Uart3SendStr("AT+NAMEAnya!\r\n");//发送蓝牙模块指令--设置名字为：Bliz
 	delay_ms(100);	
 	Uart3SendStr("AT+BAUD8\r\n"); 		 //发送蓝牙模块指令,将波特率设置成115200
 	delay_ms(100);		
@@ -63,8 +64,8 @@ int main(void)
 	NVIC_Configuration();					 //=====中断优先级分组,其中包含了所有的中断优先级的配置,方便管理和一次性修改。
 	oled_first_show();					   //只需要显示一次的字符,在此刷新一次即可。
 	Timer4_Init(5000,7199);	    	 //=====超声波定时器初始化
-	Initial_UART2(9600);
-	DMA1_USART2_Init( );
+	//Initial_UART2(9600);
+	//DMA1_USART2_Init( );
 	while(1)	
 	{
 		oled_show();

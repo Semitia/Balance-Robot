@@ -15,7 +15,8 @@ float oled_v,oled_p,oled_v_I;
 u8 motion_mode=0;
 
 float Mechanical_angle=MECHI; 
-float target_speed=0;	//期望速度（俯仰）。用于控制小车前进后退及其速度。
+float target_speed=0;	//期望速度。用于控制小车前进后退及其速度。
+float target_omiga=0; //期望角速度
 float Turn_Speed=0;		//期望速度（偏航）
 float Target_Yaw=0;
 float target_angle = MECHI;
@@ -244,69 +245,123 @@ void print(void)
 }
 
 u8 warn=0;
+const u8 for_bac=1, turn=2;
 void data_receive(void)
 {
-	if(USART_RX_STA&0x80)
+	u8 *buf;
+	u8 msg_type;
+//#if USART1_DMA
+	if(!USART1_RX_FLAG)
+	{return;}
+	USART1_RX_FLAG = 0;
+	buf = usart1_rxbuf;
+//#else
+//	if(!(USART_RX_STA&0x80))
+//	{return;}
+//	rx_buf = USART_RX_BUF;
+//#endif
+	
+	msg_type = buf[0]-'0';
+	switch(msg_type)
 	{
-		
-		u8 msg_type;
-		msg_type = USART_RX_BUF[0]-'0';
-		switch(msg_type)
+		case WARN_MSG:
 		{
-			case WARN_MSG:
-			{
-				warn = 100*(USART_RX_BUF[1]-'0') + 10*(USART_RX_BUF[2]-'0') + (USART_RX_BUF[3]-'0');
-				printf("DEGUB:warn=%u\r\n",warn);
-				DMA_USART2_Tx_Data(&warn,1);
-				break;
-			}
-			case SPD_MSG:
-			{
-
-				break;
-			}
-			case POS_MSG:
-			{
-
-				target_x = 100*(USART_RX_BUF[1]-'0') + 10*(USART_RX_BUF[2]-'0') + (USART_RX_BUF[3]-'0') + 0.1*(USART_RX_BUF[4]-'0');
-				target_y = 100*(USART_RX_BUF[5]-'0') + 10*(USART_RX_BUF[6]-'0') + (USART_RX_BUF[7]-'0') + 0.1*(USART_RX_BUF[8]-'0');
-				break;
-			}
-			case PARA_MSG:
-			{
-
-				break;
-			}
+			Mode = 3;
+			warn = tr_s(buf,1,3,2);//100*(rx_buf[1]-'0') + 10*(rx_buf[2]-'0') + (rx_buf[3]-'0');
+			//printf("DEGUB:warn=%u\r\n",warn);
+			//DMA_USART1_Tx_Data(&warn,1);
+			printf_s("1234",1);
+			printf_s(&warn,1);
+			break;
 		}
 		
-		//printf("%d, %d\r\n", start_time, end_time);
-		/*		
-		balance_UP_KP = (float) ( 100*(USART_RX_BUF[0]-'0') + 10*(USART_RX_BUF[1]-'0') + (USART_RX_BUF[2]-'0') );
-		printf("UP_KP:%.0f, ",balance_UP_KP);
-		balance_UP_KD = (float)( (USART_RX_BUF[4]-'0') + 0.1*(USART_RX_BUF[5]-'0') + 0.01*(USART_RX_BUF[6]-'0') );
-		printf("UP_KD:%.2f, ",balance_UP_KD);
-		velocity_KP = (float)( 100*(USART_RX_BUF[8]-'0') + 10*(USART_RX_BUF[9]-'0') + (USART_RX_BUF[10]-'0') );
-		printf("V_KP:%.0f, ",velocity_KP);
-		velocity_KI = (float)( (USART_RX_BUF[12]-'0') + 0.1*(USART_RX_BUF[13]-'0') + 0.01*(USART_RX_BUF[14]-'0') );
-		printf("V_KI:%.2f, ",velocity_KI);
-		Mechanical_angle = (float)( (USART_RX_BUF[17]-'0') + 0.1*(USART_RX_BUF[18]-'0') + 0.01*(USART_RX_BUF[19]-'0') );
-		if(USART_RX_BUF[16]-'0' == 1) {Mechanical_angle *= -1;}
-		printf("Mechanical:%.2f, ",Mechanical_angle);
-		velocity_KD = (float)( 10*(USART_RX_BUF[21]-'0') + (USART_RX_BUF[22]-'0') + 0.1*(USART_RX_BUF[23]-'0') );
-		printf("V_KD:%.1f, ",velocity_KD);
-		Turn_KP = (float)( (USART_RX_BUF[25]-'0') + 0.1*(USART_RX_BUF[26]-'0') + 0.01*(USART_RX_BUF[27]-'0') );
-		printf("Turn_KP:%.2f, ",Turn_KP);
-		Turn_KI = (float)( (USART_RX_BUF[29]-'0') + 0.1*(USART_RX_BUF[30]-'0') + 0.01*(USART_RX_BUF[31]-'0') );
-		printf("Turn_KI:%.2f\r\n",Turn_KI);
-		target_speed = (float)( 100*(USART_RX_BUF[34]-'0') + 10*(USART_RX_BUF[35]-'0') + (USART_RX_BUF[36]-'0') );
-		if(USART_RX_BUF[33]-'0' == 1) {target_speed *= -1;}
-		printf("speed:%.0f, ",target_speed);
-		Position_KP = (float)( 1*(USART_RX_BUF[38]-'0') + 0.1*(USART_RX_BUF[39]-'0') + 0.01*(USART_RX_BUF[40]-'0') );
-		printf("P_KP:%.2f\r\n",Position_KP);
-		*/
+		case SPD_MSG:
+		{
+			u8 mov_mod = tr(buf[1]);
+			Mode = 1;
+			switch(mov_mod)
+			{
+				case for_bac:
+				{
+					target_speed = tr_s(buf,2,3,1);//(float)( 10*(USART3_RX_BUF[1]-'0') + (USART3_RX_BUF[2]-'0') + 0.1*(USART3_RX_BUF[3]-'0') );
+					target_omiga = 0;
+					break;
+				}
+				case turn:
+				{
+					target_speed = 0;
+					target_omiga = tr_s(buf,2,3,1);
+					break;
+				}
+			}
+			printf("speed:%.2f, ",target_speed);
+			break;
+		}
 		
-		USART_RX_STA=0;
+		case POS_MSG://要前往的坐标
+		{
+			Mode = 2;
+			target_x = tr_s(buf,1,4,2);//100*(rx_buf[1]-'0') + 10*(rx_buf[2]-'0') + (rx_buf[3]-'0') + 0.1*(rx_buf[4]-'0');
+			target_y = tr_s(buf,1,4,2);//100*(rx_buf[5]-'0') + 10*(rx_buf[6]-'0') + (rx_buf[7]-'0') + 0.1*(rx_buf[8]-'0');
+			break;
+		}
+		
+		case PARA_MSG:
+		{
+			balance_UP_KP = tr_s(buf,1,3,2);//(float) ( 100*(rx_buf[0]-'0') + 10*(rx_buf[1]-'0') + (rx_buf[2]-'0') );
+			printf("UP_KP:%.0f, ",balance_UP_KP);
+			balance_UP_KD = tr_s(buf,5,3,0);//(float)( (rx_buf[4]-'0') + 0.1*(rx_buf[5]-'0') + 0.01*(rx_buf[6]-'0') );
+			printf("UP_KD:%.2f, ",balance_UP_KD);
+			velocity_KP = tr_s(buf,9,3,2);//(float)( 100*(rx_buf[8]-'0') + 10*(rx_buf[9]-'0') + (rx_buf[10]-'0') );
+			printf("V_KP:%.0f, ",velocity_KP);
+			velocity_KI = tr_s(buf,13,3,0);//(float)( (rx_buf[12]-'0') + 0.1*(rx_buf[13]-'0') + 0.01*(rx_buf[14]-'0') );
+			printf("V_KI:%.2f, ",velocity_KI);
+			Mechanical_angle = tr_s(buf,18,3,0);//(float)( (rx_buf[17]-'0') + 0.1*(rx_buf[18]-'0') + 0.01*(rx_buf[19]-'0') );
+			if(buf[17]-'0' == 1) {Mechanical_angle *= -1;}
+			printf("Mechanical:%.2f, ",Mechanical_angle);
+			velocity_KD = tr_s(buf,22,3,1);//(float)( 10*(rx_buf[21]-'0') + (rx_buf[22]-'0') + 0.1*(rx_buf[23]-'0') );
+			printf("V_KD:%.1f, ",velocity_KD);
+			Turn_KP = tr_s(buf,26,3,0);//(float)( (rx_buf[25]-'0') + 0.1*(rx_buf[26]-'0') + 0.01*(rx_buf[27]-'0') );
+			printf("Turn_KP:%.2f, ",Turn_KP);
+			Turn_KI = tr_s(buf,30,3,0);//(float)( (rx_buf[29]-'0') + 0.1*(rx_buf[30]-'0') + 0.01*(rx_buf[31]-'0') );
+			printf("Turn_KI:%.2f\r\n",Turn_KI);
+			target_speed = tr_s(buf,35,3,2);//(float)( 100*(rx_buf[34]-'0') + 10*(rx_buf[35]-'0') + (rx_buf[36]-'0') );
+			if(buf[34]-'0' == 1) {target_speed *= -1;}
+			printf("speed:%.0f, ",target_speed);
+			Position_KP = tr_s(buf,39,3,0);//(float)( 1*(rx_buf[38]-'0') + 0.1*(rx_buf[39]-'0') + 0.01*(rx_buf[40]-'0') );
+			printf("P_KP:%.2f\r\n",Position_KP);
+			break;
+		}
 	}
+	
+	//printf("%d, %d\r\n", start_time, end_time);
+	/*		
+	balance_UP_KP = (float) ( 100*(rx_buf[0]-'0') + 10*(rx_buf[1]-'0') + (rx_buf[2]-'0') );
+	printf("UP_KP:%.0f, ",balance_UP_KP);
+	balance_UP_KD = (float)( (rx_buf[4]-'0') + 0.1*(rx_buf[5]-'0') + 0.01*(rx_buf[6]-'0') );
+	printf("UP_KD:%.2f, ",balance_UP_KD);
+	velocity_KP = (float)( 100*(rx_buf[8]-'0') + 10*(rx_buf[9]-'0') + (rx_buf[10]-'0') );
+	printf("V_KP:%.0f, ",velocity_KP);
+	velocity_KI = (float)( (rx_buf[12]-'0') + 0.1*(rx_buf[13]-'0') + 0.01*(rx_buf[14]-'0') );
+	printf("V_KI:%.2f, ",velocity_KI);
+	Mechanical_angle = (float)( (rx_buf[17]-'0') + 0.1*(rx_buf[18]-'0') + 0.01*(rx_buf[19]-'0') );
+	if(rx_buf[16]-'0' == 1) {Mechanical_angle *= -1;}
+	printf("Mechanical:%.2f, ",Mechanical_angle);
+	velocity_KD = (float)( 10*(rx_buf[21]-'0') + (rx_buf[22]-'0') + 0.1*(rx_buf[23]-'0') );
+	printf("V_KD:%.1f, ",velocity_KD);
+	Turn_KP = (float)( (rx_buf[25]-'0') + 0.1*(rx_buf[26]-'0') + 0.01*(rx_buf[27]-'0') );
+	printf("Turn_KP:%.2f, ",Turn_KP);
+	Turn_KI = (float)( (rx_buf[29]-'0') + 0.1*(rx_buf[30]-'0') + 0.01*(rx_buf[31]-'0') );
+	printf("Turn_KI:%.2f\r\n",Turn_KI);
+	target_speed = (float)( 100*(rx_buf[34]-'0') + 10*(rx_buf[35]-'0') + (rx_buf[36]-'0') );
+	if(rx_buf[33]-'0' == 1) {target_speed *= -1;}
+	printf("speed:%.0f, ",target_speed);
+	Position_KP = (float)( 1*(rx_buf[38]-'0') + 0.1*(rx_buf[39]-'0') + 0.01*(rx_buf[40]-'0') );
+	printf("P_KP:%.2f\r\n",Position_KP);
+	*/
+//#if !USART1_DMA
+//USART_RX_STA=0;
+//#endif
 	return;
 }
 

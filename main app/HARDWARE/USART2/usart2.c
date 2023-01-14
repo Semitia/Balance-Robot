@@ -1,6 +1,5 @@
- #include "usart2.h"
+#include "usart2.h"
 u8 Fore,Back,Left,Right;
-
 
 u8 USART2_TX_BUF[USART2_MAX_TX_LEN]; 	
 u8 u1rxbuf[USART2_MAX_RX_LEN];		
