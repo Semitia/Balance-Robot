@@ -14,16 +14,20 @@
 #define POS_MSG  3 //position
 #define PARA_MSG 4
 #define DES_MSG  5 //destination
-#define WARN_RANGE 2//产生warn的距离阈值
+#define WARN_RANGE 1.5//产生warn的距离阈值
+#define ANG_RANGE  10//前进时允许的角度偏差
 #define PI 3.1315926
 #define BES_VALUE 10//value of going to the unit beside car
 #define COR_VALUE 14//value of going to the unit on the corner
+#define COR_LOCK  1 //如果是1，那么右边是墙的时候无法到达右上角，其他三个角同理。
+#define MODE 1 //1:A* mode; 2:PS2 mode
 
 typedef struct __data_t{
     int x,y;
     int F,G,H;
 }data_t;
 
+typedef struct __unit_t unit_t;
 typedef struct __unit_t{
     data_t data;
     unit_t *father;
@@ -32,12 +36,13 @@ typedef struct __unit_t{
 }unit_t;
 
 enum direction {back, back_right, right, front_right, front, front_left, left, back_left};
-const int dir_angle[8] = {PI, -3*PI/4, -PI/2, -PI/4, 0, PI/4, PI/2, 3*PI/4};
+const double dir_angle[8] = {PI, -3*PI/4, -PI/2, -PI/4, 0, PI/4, PI/2, 3*PI/4};
 unsigned char warn = 0;
 float warn_log[8]; //生成警告的最短range
 bool map[100][100];//地图，分辨率为1分米，范围即为10mx10m：0可走，1为障碍物
 bool open_flag[100][100],close_flag[100][100];//record if the unit has been add to any list.
 int pos_x,pos_y,des_x,des_y;//车子坐标格子，目的地格子
+float _pos_x,_pos_y,_des_x,_des_y;//非栅格化的真实坐标
 float angle;//车身朝向
 
 Set_Serial init;
@@ -126,10 +131,44 @@ void A_star_init()
     return;
 }
 
+//enum mov_cmd {stop=1, mov_for, turn_le, turn_ri, wrong};
+const int stop=1, mov_for=2, turn_le=3, turn_ri=4, wrong=5, mov_bac=6;
+/**
+ * @brief 
+ * @param from 起点
+ * @param to 目的地
+ * @return 运动模式
+ */
+int moveto(int x, int y, unit_t *to)//暂时感觉格式还不太优美，有待优化
+{
+    float to_ang = atan((to->data.y-y)/(to->data.x-x));
+    if(abs(to_ang - angle)<ANG_RANGE) {return mov_for;}
+    else if(to_ang < angle) {return turn_ri;}
+    else {return turn_le;}
+    return wrong;
+}
+
+int moveto(void)
+{
+    float to_ang;
+    if(_des_x==_pos_x)
+    {
+        if(_des_y==_pos_y) {return stop;}
+        else if(_des_y>_pos_y) {to_ang=PI/2;}
+        else {to_ang=-PI/2;}
+    }
+    else { to_ang = atan((_des_y-_pos_y)/(_des_x-_pos_x)); }
+    if(abs(to_ang - angle)<ANG_RANGE) {return mov_for;}
+    else if(to_ang < angle) {return turn_ri;}
+    else {return turn_le;}
+    return wrong;
+}
+
 //需要与enum那里的顺序保持一致
 const int around[8][2] = {{0,-1},{1,-1},{1,0},{1,1},{0,1},{-1,1},{-1,0},{-1,-1}};
+unit_t *tar_unit;//车子正在前往的地图单位:target unit
 /**
- * @brief give the move command
+ * @brief run A* alogrithm and give move command
  * 1:stop
  * 2:move forward
  * 3:turn left
@@ -139,20 +178,29 @@ const int around[8][2] = {{0,-1},{1,-1},{1,0},{1,1},{0,1},{-1,1},{-1,0},{-1,-1}}
  */
 int A_star()
 {
+    if(pos_x!=tar_unit->data.x || pos_y!=tar_unit->data.y)
+    { return moveto(pos_x,pos_y,tar_unit); }
+
+    if((pos_x==des_x) && (pos_y==des_y))//到了终点所在格子，进行更精细的运动
+    {return moveto();}
+
     unit_t *p_min = o_list->next;//找F值最小的节点
-    if((pos_x==des_x) && (pos_y==des_y)) {return 1;}
     for(unit_t *p = o_list->next; p!=NULL; p = p->next)
     {
         if(p_min->data.F > p->data.F) {p_min = p;}
     }
-
     for(int i=0; i<8; i++)
     {
         data_t find;
         find.x = p_min->data.x + around[i][0];
         find.y = p_min->data.y + around[i][1];
-        
+
         if(map[find.x][find.y] || close_flag[find.x][find.y]) {continue;}
+        if(COR_LOCK && i%2) //对角不能随便走
+        {
+            if(map[find.x][p_min->data.y] || map[p_min->data.x][find.y]) 
+            {continue;}//
+        }
 
         if(i%2) {find.G = p_min->data.G+COR_VALUE;}//奇数对应斜角
         else    {find.G = p_min->data.G+BES_VALUE;}
@@ -182,9 +230,66 @@ int A_star()
         {
             insert_node(o_list,find,p_min);
         }
-
     }
+    insert_node(c_list,p_min->data,p_min->father);
+    delete_node(p_min);
+    /*前往p_min的位置*/
+    tar_unit = p_min;
+    return moveto(pos_x,pos_y,tar_unit);
 }
+
+/**
+ * @brief send WARN_MSG
+ */
+void write_msg(void)
+{
+    std::string msg= "1" + std::to_string(warn);
+    init.SendMsgs(msg);
+    return;
+}
+
+/**
+ * @brief send SPD_MSG
+ * @param move_cmd 
+ */
+void write_msg(int move_cmd)
+{
+    switch(move_cmd)
+    {
+        case stop:
+        {
+            std::string msg= "2" + std::to_string(mov_for) + std::to_string(0);
+            init.SendMsgs(msg);
+            break;
+        }
+        case mov_for:
+        {
+            std::string msg= "2" + std::to_string(mov_for) + std::to_string(10);
+            init.SendMsgs(msg);
+            break;
+        }
+        case turn_le:
+        {
+            std::string msg= "2" + std::to_string(turn_le) + std::to_string(5);
+            init.SendMsgs(msg);    
+            break;
+        }
+        case turn_ri:
+        {
+            std::string msg= "2" + std::to_string(turn_ri) + std::to_string(5);
+            init.SendMsgs(msg);             
+            break;
+        }
+        case wrong:
+        {
+            ROS_INFO("move command wrong");
+            break;
+        }
+    }
+    return;
+}
+
+
 
 void timer_callback(const ros::TimerEvent&)
 {
@@ -209,19 +314,19 @@ void timer_callback(const ros::TimerEvent&)
             //ACK
             break;
         }
-        case POS_MSG://角度信息，360.0度
+        case POS_MSG://坐标和角度信息，360.0度
         {
-            float tem_x = tr_s(got,1,4,2);
-            float tem_y = tr_s(got,5,4,2);
+            _pos_x = tr_s(got,1,4,2);
+            _pos_y = tr_s(got,5,4,2);
             angle = tr_s(got,9,4,2);
-            pos_x = floor(tem_x);
-            pos_y = floor(tem_y);
+            pos_x = floor(_pos_x);
+            pos_y = floor(_pos_y);
             for(int i=0; i<8; i++)
             {
                 float dis = WARN_RANGE;//扫到的距离
                 if((warn>>i)&0x01) {dis = warn_log[i];}
-                float wall_x = tem_x + dis*cos(angle + dir_angle[i]);
-                float wall_y = tem_y + dis*sin(angle + dir_angle[i]);
+                float wall_x = _pos_x + dis*cos(angle + dir_angle[i]);
+                float wall_y = _pos_y + dis*sin(angle + dir_angle[i]);
                 map[tr_m(wall_x)][tr_m(wall_y)] = (warn>>i)&0x01;
             }
 
@@ -229,11 +334,21 @@ void timer_callback(const ros::TimerEvent&)
         }
         default :
         {
-            ROS_INFO("USART WRONG!");
+            ROS_WARN("USART WRONG!");
             break;
         }
     }
     ROS_INFO("%s",got.c_str());
+    
+    switch (MODE)
+    {
+        case 1:
+        {
+            int move_cmd = A_star();
+            write_msg(move_cmd);
+            break;
+        }
+    }
 
 
     return;
