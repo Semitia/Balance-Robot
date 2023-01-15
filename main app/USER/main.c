@@ -71,9 +71,12 @@ int main(void)
 		oled_show();
 
 		buf_size = sizeof(buffer);
+		sendmsg();
 		//DMA_USART2_Tx_Data(buffer,buf_size);
-		data_receive2();
-		delay_ms(500); //20HZ的显示频率，屏幕无需时刻刷新。
+		//data_receive2();
+		//delay_ms(500); //20HZ的显示频率，屏幕无需时刻刷新。
+		
+		
 		LED = !LED;
 	}
 }

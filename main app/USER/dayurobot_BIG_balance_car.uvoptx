@@ -164,7 +164,6 @@
         <SetRegEntry>
           <Number>0</Number>
           <Key>DLGUARM</Key>
-          <Name>/</Name>
         </SetRegEntry>
         <SetRegEntry>
           <Number>0</Number>
@@ -182,7 +181,95 @@
           <Name></Name>
         </SetRegEntry>
       </TargetDriverDllRegistry>
-      <Breakpoint/>
+      <Breakpoint>
+        <Bp>
+          <Number>0</Number>
+          <Type>0</Type>
+          <LineNumber>274</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>134220772</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>W:\CreatBoard\Balance_Robot\2銆佷緥绋嬩唬鐮?鏍囧噯搴撲緥绋?B31浼樺寲鐗堥泦鎴愬紡骞宠　灏忚溅-钃濈墮 - 寰抗\HARDWARE\control\control.c</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression>\\standard_balance\../HARDWARE/control/control.c\274</Expression>
+        </Bp>
+        <Bp>
+          <Number>1</Number>
+          <Type>0</Type>
+          <LineNumber>273</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>134220764</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>W:\CreatBoard\Balance_Robot\2銆佷緥绋嬩唬鐮?鏍囧噯搴撲緥绋?B31浼樺寲鐗堥泦鎴愬紡骞宠　灏忚溅-钃濈墮 - 寰抗\HARDWARE\control\control.c</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression>\\standard_balance\../HARDWARE/control/control.c\273</Expression>
+        </Bp>
+        <Bp>
+          <Number>2</Number>
+          <Type>0</Type>
+          <LineNumber>272</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>134220756</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>W:\CreatBoard\Balance_Robot\2銆佷緥绋嬩唬鐮?鏍囧噯搴撲緥绋?B31浼樺寲鐗堥泦鎴愬紡骞宠　灏忚溅-钃濈墮 - 寰抗\HARDWARE\control\control.c</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression>\\standard_balance\../HARDWARE/control/control.c\272</Expression>
+        </Bp>
+        <Bp>
+          <Number>3</Number>
+          <Type>0</Type>
+          <LineNumber>269</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>134220718</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>W:\CreatBoard\Balance_Robot\2銆佷緥绋嬩唬鐮?鏍囧噯搴撲緥绋?B31浼樺寲鐗堥泦鎴愬紡骞宠　灏忚溅-钃濈墮 - 寰抗\HARDWARE\control\control.c</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression>\\standard_balance\../HARDWARE/control/control.c\269</Expression>
+        </Bp>
+        <Bp>
+          <Number>4</Number>
+          <Type>0</Type>
+          <LineNumber>270</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>134220724</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>W:\CreatBoard\Balance_Robot\2銆佷緥绋嬩唬鐮?鏍囧噯搴撲緥绋?B31浼樺寲鐗堥泦鎴愬紡骞宠　灏忚溅-钃濈墮 - 寰抗\HARDWARE\control\control.c</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression>\\standard_balance\../HARDWARE/control/control.c\270</Expression>
+        </Bp>
+      </Breakpoint>
+      <WatchWindow1>
+        <Ww>
+          <count>0</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>USART1_RX_LEN,0x0A</ItemText>
+        </Ww>
+      </WatchWindow1>
       <Tracepoint>
         <THDelay>0</THDelay>
       </Tracepoint>

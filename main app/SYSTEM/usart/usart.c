@@ -120,6 +120,7 @@ void DMA1_USART1_Init(void)
 **/
 void DMA_USART1_Tx_Data(u8 *buffer, u32 size)//单位为字节
 {
+	if(!size) {return;}
 	while(USART1_TX_FLAG);						
 	USART1_TX_FLAG=1;							
 	DMA1_Channel4->CMAR  = (uint32_t)buffer;	
@@ -127,24 +128,68 @@ void DMA_USART1_Tx_Data(u8 *buffer, u32 size)//单位为字节
 	DMA_Cmd(DMA1_Channel4, ENABLE);				
 }
 
-void printf_s(u8 *s, u8 newline)
+char line[3] = "\r\n";
+void printf_s(char *s, u8 newline)
 {
-	uint32_t size = sizeof(s)/8;
+	char *p = s;
+	uint32_t size = strlen(s);
+/*if(newline)
+	{
+		u8 i;
+		char *str = (char*)malloc(size+2);
+		for(i=0; i<size; i++) 
+		{str[i]=s[i];}
+		strcat(str,"\r\n");
+		size+=2;
+		p = str;
+	}*/
+	DMA_USART1_Tx_Data(p,size);
+	if(newline) DMA_USART1_Tx_Data(line,2);
+	/*
 	while(USART1_TX_FLAG);						
 	USART1_TX_FLAG=1;			
-	if(newline) 
-	{
-		size+=2;
-		//sprintf(s,"\r\n");估计是不行
-	}
-	DMA1_Channel4->CMAR  = (uint32_t)s;	
+	DMA1_Channel4->CMAR  = (uint32_t)p;	
 	DMA1_Channel4->CNDTR = size;    			
-	DMA_Cmd(DMA1_Channel4, ENABLE);			
+	DMA_Cmd(DMA1_Channel4, ENABLE);
+	*/
+//	if(newline) free(p);
+	return;
 }
 
-void printf_f(u8 *name, float data)
+#define UP 3
+#define DOWN -2
+void printf_f(char *name, float data)
 {
-	
+	char *str = (char*)malloc(UP+DOWN+2);
+	int i,p=0;//p指向str的第几位
+	bool reach_flag=0;//遇到首位数字
+	printf_s(name,0);
+	if(data<0) {str[p++]='-';data*=-1;}
+	for(i=UP;i>=0;i--)
+	{
+		char num = data/(pow(10,i));
+		if(!num && !reach_flag) {continue;}
+		data-=num*pow(10,i);
+		str[p++] = num+48;
+		reach_flag=1;
+	}
+	if(!reach_flag) {str[p++] = '0';}
+	str[p++] = '.';
+	for(i=-1;i>=DOWN;i--)
+	{
+		char num = data/(pow(10,i));
+		data-=num*pow(10,i);
+		str[p++] = num+48;
+	}
+	str[p] = '\0';
+	for(i=0;i<p;i++)
+	{
+		DMA_USART1_Tx_Data(&str[i],1);
+	}	
+	//DMA_USART1_Tx_Data(str,p);
+	//printf_s(str,0);
+	free(str);
+	return;
 }
 
 void printf1(u8 *name, float data)

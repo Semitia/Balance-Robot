@@ -8,12 +8,11 @@
 				读者可在imv_mpu.h文件第26行的宏定义进行修改(#define DEFAULT_MPU_HZ  (100))
 **************************************************************************/
 
-
 int Balance_Pwm,Velocity_Pwm,Turn_Pwm,Turn_Kp;
 int oled_up_pwm, oled_turn_pwm;
 float oled_v,oled_p,oled_v_I;
 u8 motion_mode=0;
-
+bool ACK=0;
 float Mechanical_angle=MECHI; 
 float target_speed=0;	//期望速度。用于控制小车前进后退及其速度。
 float target_omiga=0; //期望角速度
@@ -268,10 +267,9 @@ void data_receive(void)
 		{
 			Mode = 3;
 			warn = tr_s(buf,1,3,2);//100*(rx_buf[1]-'0') + 10*(rx_buf[2]-'0') + (rx_buf[3]-'0');
-			//printf("DEGUB:warn=%u\r\n",warn);
-			//DMA_USART1_Tx_Data(&warn,1);
-			printf_s("1234",1);
-			printf_s(&warn,1);
+			DMA_USART1_Tx_Data("123456789",9);
+			printf_f("float",12.34);
+			//printf_s(&warn,1);
 			break;
 		}
 		
@@ -332,6 +330,12 @@ void data_receive(void)
 			printf("P_KP:%.2f\r\n",Position_KP);
 			break;
 		}
+		case ACK_MSG:
+		{
+			ACK=1;
+			break;
+		}
+		
 	}
 	
 	//printf("%d, %d\r\n", start_time, end_time);
@@ -425,14 +429,33 @@ void data_receive3(void)
 		Turn_KI = (float)( (USART3_RX_BUF[29]-'0') + 0.1*(USART3_RX_BUF[30]-'0') + 0.01*(USART3_RX_BUF[31]-'0') );
 		printf("Turn_KI:%.2f\r\n",Turn_KI);
 		*/
-		target_speed = (float)( 10*(USART3_RX_BUF[1]-'0') + (USART3_RX_BUF[2]-'0') + 0.1*(USART3_RX_BUF[3]-'0') );
-		if(USART3_RX_BUF[0]-'0' == 1) {target_speed *= -1;}
+		
+		//target_speed = (float)( 10*(USART3_RX_BUF[1]-'0') + (USART3_RX_BUF[2]-'0') + 0.1*(USART3_RX_BUF[3]-'0') );
+		//if(USART3_RX_BUF[0]-'0' == 1) {target_speed *= -1;}
 		//printf("%.1f\r\n",target_speed);
+		
+		target_x = tr_s(USART3_RX_BUF,1,4,1);
+		target_y = tr_s(USART3_RX_BUF,5,4,1);
+		
 		USART3_RX_STA=0;
 	}
 	return;
 }
 	
-
+void sendmsg(void)
+{
+	u8 buf[13];
+	if(!ACK)
+	{
+		buf[0]=
+	}
+	else
+	{
+		//now.x
+		buf[0]=POS_MSG;
+		
+	}
+	return;
+}
 
 
