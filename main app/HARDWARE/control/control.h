@@ -13,13 +13,15 @@
 #define ACCY_FIX -200
 #define ACCZ_FIX 16000
 #define PI 3.14159265
-
+/**/
 #define WARN_MSG 1 //warn
 #define SPD_MSG  2 //speed
 #define POS_MSG  3 //position
 #define PARA_MSG 4 // param
 #define DES_MSG  5 //destination
 #define ACK_MSG  6
+#define INFO_MSG 7
+
 #define SPD_MODE 0
 #define POS_MODE 1
 

@@ -1,5 +1,5 @@
 #include "control.h"
-
+//const u8 WARN_MSG=1,SPD_MSG=2,POS_MSG=3,PARA_MSG=4,DES_MSG=5,ACK_MSG=6;
 /**************************************************************************
 函数功能：所有的控制代码都在这里面
         5ms定时中断由MPU6050的INT引脚触发
@@ -14,13 +14,15 @@ float oled_v,oled_p,oled_v_I;
 u8 motion_mode=0;
 bool ACK=0;
 float Mechanical_angle=MECHI; 
+float target_x=0, target_y=0;
+//float target_yaw=0;
 float target_speed=0;	//期望速度。用于控制小车前进后退及其速度。
 float target_omiga=0; //期望角速度
 float Turn_Speed=0;		//期望速度（偏航）
 float Target_Yaw=0;
 float target_angle = MECHI;
 int target_position=0;
-float target_x=0, target_y=0;
+
 //针对不同车型参数，在sys.h内设置define的电机类型
 float balance_UP_KP=BLC_KP; 	 // 小车直立环PD参数
 float balance_UP_KD=BLC_KD;
@@ -162,31 +164,6 @@ float anya_position(void)
 	return output;
 }
 
-/**************************************************************************
-函数功能：直立PD控制
-入口参数：角度、机械平衡角度（机械中值）、角速度
-返回  值：直立控制PWM
-**************************************************************************/
-int balance_UP(float Angle,float Mechanical_balance,float Gyro)
-{  
-	float Bias;
-	int balance;
-	Bias=Angle-Mechanical_balance;    							 //===求出平衡的角度中值和机械相关
-	balance=balance_UP_KP*Bias+balance_UP_KD*Gyro;  //===计算平衡控制的电机PWM  PD控制   kp是P系数 kd是D系数 
-	return balance;
-}
-
-
-void Tracking()
-{
-	TkSensor=0;
-	TkSensor+=(C1<<3);
-	TkSensor+=(C2<<2);
-	TkSensor+=(C3<<1);
-	TkSensor+=C4;
-}
-
-
 float roll_raw=0, pitch_raw=0;
 float roll_kal, bias = -45;
 float Q_angle = 0.02,Q_bias = 0.3;
@@ -244,6 +221,7 @@ void print(void)
 }
 
 u8 warn=0;
+u8 info_req=0;
 const u8 for_bac=1, turn=2;
 void data_receive(void)
 {
@@ -251,7 +229,7 @@ void data_receive(void)
 	u8 msg_type;
 //#if USART1_DMA
 	if(!USART1_RX_FLAG)
-	{return;}
+	{info_req=0;return;}
 	USART1_RX_FLAG = 0;
 	buf = usart1_rxbuf;
 //#else
@@ -267,9 +245,10 @@ void data_receive(void)
 		{
 			Mode = 3;
 			warn = tr_s(buf,1,3,2);//100*(rx_buf[1]-'0') + 10*(rx_buf[2]-'0') + (rx_buf[3]-'0');
-			DMA_USART1_Tx_Data("123456789",9);
-			printf_f("float",12.34);
+			//DMA_USART1_Tx_Data("123456789",9);
+			//printf_f("float",12.34);
 			//printf_s(&warn,1);
+			info_req = WARN_MSG;
 			break;
 		}
 		
@@ -292,7 +271,8 @@ void data_receive(void)
 					break;
 				}
 			}
-			printf("speed:%.2f, ",target_speed);
+			//printf("speed:%.2f, ",target_speed);
+			info_req = SPD_MSG;
 			break;
 		}
 		
@@ -300,7 +280,9 @@ void data_receive(void)
 		{
 			Mode = 2;
 			target_x = tr_s(buf,1,4,2);//100*(rx_buf[1]-'0') + 10*(rx_buf[2]-'0') + (rx_buf[3]-'0') + 0.1*(rx_buf[4]-'0');
-			target_y = tr_s(buf,1,4,2);//100*(rx_buf[5]-'0') + 10*(rx_buf[6]-'0') + (rx_buf[7]-'0') + 0.1*(rx_buf[8]-'0');
+			target_y = tr_s(buf,5,4,2);//100*(rx_buf[5]-'0') + 10*(rx_buf[6]-'0') + (rx_buf[7]-'0') + 0.1*(rx_buf[8]-'0');
+			Target_Yaw = tr_s(buf,9,4,2);
+			info_req = POS_MSG;
 			break;
 		}
 		
@@ -335,6 +317,7 @@ void data_receive(void)
 			ACK=1;
 			break;
 		}
+		
 		
 	}
 	
@@ -402,6 +385,7 @@ void data_receive2(void)
 	return;
 }
 
+bool des_flag=0;
 void data_receive3(void)
 {
 	//u8 len,t;
@@ -433,10 +417,19 @@ void data_receive3(void)
 		//target_speed = (float)( 10*(USART3_RX_BUF[1]-'0') + (USART3_RX_BUF[2]-'0') + 0.1*(USART3_RX_BUF[3]-'0') );
 		//if(USART3_RX_BUF[0]-'0' == 1) {target_speed *= -1;}
 		//printf("%.1f\r\n",target_speed);
-		
-		target_x = tr_s(USART3_RX_BUF,1,4,1);
-		target_y = tr_s(USART3_RX_BUF,5,4,1);
-		
+		int BTcmd= (int)tr_s(USART3_RX_BUF,0,3,2);
+		switch(BTcmd)
+		{
+			case 666://destination
+			{
+				target_x = tr_s(USART3_RX_BUF,3,4,2);
+				target_y = tr_s(USART3_RX_BUF,7,4,2);
+				des_flag=1;
+				break;
+			}
+			
+		}
+
 		USART3_RX_STA=0;
 	}
 	return;
@@ -444,17 +437,77 @@ void data_receive3(void)
 	
 void sendmsg(void)
 {
-	u8 buf[13];
-	if(!ACK)
+	u8 i;
+	char buf[20];
+	u8 len;
+	if(!des_flag) 
 	{
-		buf[0]=
+		sprintf(buf,"Waitting DES_CMD\r\n\0");
+		len=19;
+	}
+	else if(!ACK)
+	{
+		int s1=f_to_u(target_x,1), s2=f_to_u(target_y,1);
+		//sprintf(buf,"%u%d%d\r\n",DES_MSG,s1,s2);
+		buf[0]=DES_MSG+48;
+		swrite(buf,s1,1);
+		swrite(buf,s2,6);
+		
+		len=12;
 	}
 	else
 	{
-		//now.x
-		buf[0]=POS_MSG;
-		
+		int s1=f_to_u(now.x,1), s2=f_to_u(now.y,1), s3=f_to_u(now.yaw,1);
+		buf[0]=POS_MSG+48;
+		swrite(buf,s1,1);
+		swrite(buf,s2,6);
+		swrite(buf,s3,11);
+		//sprintf(buf,"%u%d%d%d\r\n",POS_MSG,s1,s2,s3);
+		len=17;
 	}
+	for(i=0;i<len;i++)
+	{
+		DMA_USART1_Tx_Data(&buf[i],1);
+	}
+	//DMA_USART1_Tx_Data(buf,len);
+	//printf_s(buf,0);
+	
+	switch(info_req)
+	{
+		case 0:
+		{
+			break;
+		}
+		case WARN_MSG:
+		{
+			char str[4];
+			sprintf(str,"%u",warn);
+			DMA_USART1_Tx_Data("INFO:WARN= ",12);
+			DMA_USART1_Tx_Data(str,4);
+			break;
+		}
+		case SPD_MSG:
+		{
+			if(target_speed>0) {DMA_USART1_Tx_Data("Forward",8);}
+			else if(target_speed<0) {DMA_USART1_Tx_Data("Back",6);}
+			else if(target_omiga<0) {DMA_USART1_Tx_Data("TurnRight",10);}
+			else {DMA_USART1_Tx_Data("TurnLeft",9);}
+			break;
+		}
+		case POS_MSG:
+		{
+			break;
+		}
+		case PARA_MSG:
+		{
+			break;
+		}
+		case DES_MSG:
+		{
+			break;
+		}
+	}
+	
 	return;
 }
 

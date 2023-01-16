@@ -92,14 +92,14 @@ void DMA1_USART1_Init(void)
 	DMA_Init(DMA1_Channel4,&DMA1_Init); 									
 
 	NVIC_InitStructure.NVIC_IRQChannel = DMA1_Channel5_IRQn;				
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 3 ;				
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0 ;				
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;					
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;						
 	NVIC_Init(&NVIC_InitStructure);											
 
 	NVIC_InitStructure.NVIC_IRQChannel = DMA1_Channel4_IRQn;				
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 3 ;				
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0 ;				
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;							
 	NVIC_Init(&NVIC_InitStructure);										
 
@@ -129,9 +129,9 @@ void DMA_USART1_Tx_Data(u8 *buffer, u32 size)//单位为字节
 }
 
 char line[3] = "\r\n";
-void printf_s(char *s, u8 newline)
+void printf_s(char *s)
 {
-	char *p = s;
+	//char *p = s;
 	uint32_t size = strlen(s);
 /*if(newline)
 	{
@@ -143,8 +143,8 @@ void printf_s(char *s, u8 newline)
 		size+=2;
 		p = str;
 	}*/
-	DMA_USART1_Tx_Data(p,size);
-	if(newline) DMA_USART1_Tx_Data(line,2);
+	DMA_USART1_Tx_Data(s,size);
+	//if(newline) DMA_USART1_Tx_Data(line,2);
 	/*
 	while(USART1_TX_FLAG);						
 	USART1_TX_FLAG=1;			
@@ -163,7 +163,7 @@ void printf_f(char *name, float data)
 	char *str = (char*)malloc(UP+DOWN+2);
 	int i,p=0;//p指向str的第几位
 	bool reach_flag=0;//遇到首位数字
-	printf_s(name,0);
+	printf_s(name);
 	if(data<0) {str[p++]='-';data*=-1;}
 	for(i=UP;i>=0;i--)
 	{
@@ -191,6 +191,39 @@ void printf_f(char *name, float data)
 	free(str);
 	return;
 }
+
+int f_to_u(float data, u8 p)
+{
+	int t = (int)floor(data*pow(10,p));
+	
+	/*DEBUG*/
+	u8 high= t>>8;
+	u8 low = t&0x00FF;
+	//DMA_USART1_Tx_Data("DEBUG ",6);
+	//DMA_USART1_Tx_Data(&high,1);
+	//Uart3SendByte(high);
+	//Uart3SendByte(low);	
+	//DMA_USART1_Tx_Data(&low ,1);
+	//DMA_USART1_Tx_Data("\r\n",2);
+	return t;
+}
+
+void swrite(char *buf, int txt, u8 start)
+{
+	u8 i;
+	if(txt<0) {buf[start]='-';txt*=-1;}
+	else 			{buf[start]='+';}
+	start++;
+	for(i=0;i<4;i++)
+	{
+		u16 f=(u16)(pow(10,3-i));
+		buf[start+i]=txt/f + 48;
+		txt %= f;
+	}
+	//buf[++start]=0;
+	return;
+}
+
 
 void printf1(u8 *name, float data)
 {

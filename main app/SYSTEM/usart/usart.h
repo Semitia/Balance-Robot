@@ -24,8 +24,10 @@ void USART1_IRQHandler(void);     	//����1�жϷ������
 //#endif
 void uart1_init(u32 bound);					//����1��ʼ������
 void printf1(u8 *name, float data);
-void printf_s(char *s, u8 newline);
+void printf_s(char *s);
 void printf_f(char *name, float data);
+int f_to_u(float data, u8 p);
+void swrite(char *buf, int txt, u8 start);
 
 extern u8  USART3_RX_BUF[USART_REC_LEN]; //���ջ���,���USART_REC_LEN���ֽ�.ĩ�ֽ�Ϊ���з� 
 extern u8 USART3_RX_STA;         		//����״̬���	
