@@ -68,16 +68,16 @@ int main(void)
 	//DMA1_USART2_Init( );
 	while(1)	
 	{
+		static u8 cnt=0;
 		oled_show();
-
 		buf_size = sizeof(buffer);
-		sendmsg();
+		if(cnt>=20)
+		{cnt=0;sendmsg();}
 		//DMA_USART2_Tx_Data(buffer,buf_size);
 		//data_receive2();
 		//delay_ms(500); //20HZ的显示频率，屏幕无需时刻刷新。
-		
-		
 		LED = !LED;
+		cnt++;
 	}
 }
 
