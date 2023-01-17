@@ -14,6 +14,9 @@
 #define POS_MSG  3 //position
 #define PARA_MSG 4
 #define DES_MSG  5 //destination
+#define ACK_MSG  6
+#define INFO_MSG 7//stm32's INFO
+
 #define WARN_RANGE 1.5//产生warn的距离阈值
 #define ANG_RANGE  10//前进时允许的角度偏差
 #define PI 3.1315926
@@ -65,12 +68,16 @@ int tr(char t)
  */
 float tr_s(std:: string s, int start, int num, int p)
 {
+    //ROS_INFO("DEBUG:tr_s");
     float ans=0;
+    short negative=1;
+    if(s[start++] == '-') {negative=-1;}
     while(num>0)
     {
         ans+= tr(s[start++])*pow(10,p--);
         num--;
     }
+    ans*=negative;
     return ans;
 }
 
@@ -90,27 +97,32 @@ unit_t *c_list;
 
 void insert_node(unit_t *list, data_t new_data, unit_t *fa)
 {
+    if(list == o_list) {ROS_INFO("o_list");}
+    ROS_INFO("DEBUG:insert node:%d,%d",new_data.x,new_data.y);
     unit_t *p;//插入的节点
     p = (unit_t*)malloc(sizeof(unit_t));
     p->data = new_data;
     p->father = fa;
     p->next = list->next;
-    p->next->last = p;
+    if(p->next != NULL) {p->next->last = p;}
     list->next = p;
     p->last = list;
-
+    //ROS_INFO("DEBUG:OUT insert node()");
     return;
 }
 
 void delete_node(unit_t *p)
 {
-    p->last->next = p->next;
-    p->next->last = p->last;
-    free(p);
+    ROS_INFO("DEBUG:delete node:%d,%d",p->data.x,p->data.y);
+    if(p->last!=NULL) p->last->next = p->next;
+    if(p->next!=NULL) p->next->last = p->last;
+    //free(p);
 }
 
+bool A_init_flag=0;
 void A_star_init()
 {
+    ROS_INFO("DEBUG:A_Star_init()");
     data_t data;
     o_list = (unit_t*)malloc(sizeof(unit_t));
     o_list->father = NULL;
@@ -122,12 +134,14 @@ void A_star_init()
     data.x = pos_x;
     data.y = pos_y;
     insert_node(o_list,data,NULL);
+    
     open_flag[pos_x][pos_y] = true;
-
     c_list = (unit_t*)malloc(sizeof(unit_t));
     c_list->father = NULL;
     c_list->last = NULL;
     c_list->next = NULL;
+    ROS_INFO("DEBUG:OUT A_Star_init");
+    A_init_flag=1;
     return;
 }
 
@@ -141,6 +155,7 @@ const int stop=1, mov_for=2, turn_le=3, turn_ri=4, wrong=5, mov_bac=6;
  */
 int moveto(int x, int y, unit_t *to)//暂时感觉格式还不太优美，有待优化
 {
+    ROS_INFO("DEBUG:move to");
     float to_ang = atan((to->data.y-y)/(to->data.x-x));
     if(abs(to_ang - angle)<ANG_RANGE) {return mov_for;}
     else if(to_ang < angle) {return turn_ri;}
@@ -148,8 +163,14 @@ int moveto(int x, int y, unit_t *to)//暂时感觉格式还不太优美，有待
     return wrong;
 }
 
+/**
+ * @brief //到了终点所在格子，进行更精细的运动
+ * 
+ * @return int 
+ */
 int moveto(void)
 {
+    ROS_INFO("DEBUG:move to");
     float to_ang;
     if(_des_x==_pos_x)
     {
@@ -162,6 +183,13 @@ int moveto(void)
     else if(to_ang < angle) {return turn_ri;}
     else {return turn_le;}
     return wrong;
+}
+
+bool outof_range(data_t u)
+{
+    if(u.x>100 || u.x<0) {return 1;}
+    if(u.y>100 || u.y<0) {return 1;}
+    return 0;
 }
 
 //需要与enum那里的顺序保持一致
@@ -178,7 +206,9 @@ unit_t *tar_unit;//车子正在前往的地图单位:target unit
  */
 int A_star()
 {
-    if(pos_x!=tar_unit->data.x || pos_y!=tar_unit->data.y)
+    if(!A_init_flag) {return stop;}
+    ROS_INFO("DEBUG:A_Star");
+    if(tar_unit!=NULL && (pos_x!=tar_unit->data.x || pos_y!=tar_unit->data.y))
     { return moveto(pos_x,pos_y,tar_unit); }
 
     if((pos_x==des_x) && (pos_y==des_y))//到了终点所在格子，进行更精细的运动
@@ -189,12 +219,13 @@ int A_star()
     {
         if(p_min->data.F > p->data.F) {p_min = p;}
     }
+    ROS_INFO("point: %d,%d",p_min->data.x,p_min->data.y);
     for(int i=0; i<8; i++)
     {
         data_t find;
         find.x = p_min->data.x + around[i][0];
         find.y = p_min->data.y + around[i][1];
-
+        if(outof_range(find)) {continue;}
         if(map[find.x][find.y] || close_flag[find.x][find.y]) {continue;}
         if(COR_LOCK && i%2) //对角不能随便走
         {
@@ -232,7 +263,7 @@ int A_star()
         }
     }
     insert_node(c_list,p_min->data,p_min->father);
-    delete_node(p_min);
+    //delete_node(p_min);
     /*前往p_min的位置*/
     tar_unit = p_min;
     return moveto(pos_x,pos_y,tar_unit);
@@ -241,10 +272,27 @@ int A_star()
 /**
  * @brief send WARN_MSG
  */
-void write_msg(void)
+void write_msg(int type)
 {
-    std::string msg= "1" + std::to_string(warn);
-    init.SendMsgs(msg);
+    ROS_INFO("DEBUG:write msg");
+    switch (type)
+    {
+        case WARN_MSG:
+        {
+            ROS_INFO("Send Warn=%u",warn);
+            std::string msg= "1" + std::to_string(warn);
+            init.SendMsgs(msg);
+            break;            
+        }
+
+        case ACK_MSG:
+        {
+            ROS_INFO("Send ACK");
+            std::string msg= "6";
+            init.SendMsgs(msg);
+            break;
+        }
+    }
     return;
 }
 
@@ -252,30 +300,35 @@ void write_msg(void)
  * @brief send SPD_MSG
  * @param move_cmd 
  */
-void write_msg(int move_cmd)
+void write_msg(int type, int move_cmd)
 {
+    ROS_INFO("DEBUG:write msg");
     switch(move_cmd)
     {
         case stop:
         {
+            ROS_INFO("STOP");
             std::string msg= "2" + std::to_string(mov_for) + std::to_string(0);
             init.SendMsgs(msg);
             break;
         }
         case mov_for:
         {
+            ROS_INFO("Move Forward");
             std::string msg= "2" + std::to_string(mov_for) + std::to_string(10);
             init.SendMsgs(msg);
             break;
         }
         case turn_le:
         {
+            ROS_INFO("Turn Left");
             std::string msg= "2" + std::to_string(turn_le) + std::to_string(5);
             init.SendMsgs(msg);    
             break;
         }
         case turn_ri:
         {
+            ROS_INFO("Turn Right");
             std::string msg= "2" + std::to_string(turn_ri) + std::to_string(5);
             init.SendMsgs(msg);             
             break;
@@ -289,38 +342,46 @@ void write_msg(int move_cmd)
     return;
 }
 
-
+//void write_msg(float x, float y)
 
 void timer_callback(const ros::TimerEvent&)
 {
+    ROS_INFO("loop");
     std:: string warn_msgs;
-    warn=123;
     warn_msgs = "0" + std::to_string(warn);
     init.SendMsgs(warn_msgs);
 
     std:: string got;
     got = init.SerialRead(); 
-
+    int len=got.length();
     /*data_receive*/
+    
     switch (tr(got[0]))
     {
         case DES_MSG://先设定传来的单位是分米，如100.1dm，精确度为1cm。为了方便初始化，这里面也包含小车坐标。
         {
-            des_x = floor(tr_s(got,1,4,2) );
-            des_y = floor(tr_s(got,5,4,2) );
-            pos_x = tr_m(tr_s(got, 9,4,2) );
-            pos_y = tr_m(tr_s(got,13,4,2) );
+            _des_x = tr_s(got,1,5,2);
+            _des_y = tr_s(got,6,5,2);
+            _pos_x = tr_s(got, 11,5,2);
+            _pos_y = tr_s(got,16,5,2);
+            angle = tr_s(got,21,5,2);
+            des_x = tr_m(_des_x);
+            des_y = tr_m(_des_y);
+            pos_x = tr_m(_pos_x);
+            pos_y = tr_m(_pos_y);            
+            ROS_INFO("got DES_MSG:_posx:%.1f,_posy:%.1f,posx:%dposy:%d,angle:%.1f",_pos_x,_pos_y,pos_x,pos_y,angle);
             A_star_init();
-            //ACK
+            write_msg(ACK_MSG);
             break;
         }
         case POS_MSG://坐标和角度信息，360.0度
         {
-            _pos_x = tr_s(got,1,4,2);
-            _pos_y = tr_s(got,5,4,2);
-            angle = tr_s(got,9,4,2);
-            pos_x = floor(_pos_x);
-            pos_y = floor(_pos_y);
+            _pos_x = tr_s(got,1,5,2);
+            _pos_y = tr_s(got,6,5,2);
+            angle = tr_s(got,11,5,2);
+            pos_x = tr_m(_pos_x);
+            pos_y = tr_m(_pos_y);
+            ROS_INFO("got POS_MSG:_x:%.1f,_y:%.1f,x:%dy:%d,angle:%.1f",_pos_x,_pos_y,pos_x,pos_y,angle);
             for(int i=0; i<8; i++)
             {
                 float dis = WARN_RANGE;//扫到的距离
@@ -329,16 +390,21 @@ void timer_callback(const ros::TimerEvent&)
                 float wall_y = _pos_y + dis*sin(angle + dir_angle[i]);
                 map[tr_m(wall_x)][tr_m(wall_y)] = (warn>>i)&0x01;
             }
-
+            break;
+        }
+        case INFO_MSG:
+        {
+            ROS_INFO("%s",got.c_str());
             break;
         }
         default :
         {
-            ROS_WARN("USART WRONG!");
+            //ROS_WARN("USART WRONG!");
             break;
         }
     }
-    ROS_INFO("%s",got.c_str());
+    
+    if(len) ROS_INFO("%s",got.c_str());
     
     switch (MODE)
     {
@@ -349,7 +415,7 @@ void timer_callback(const ros::TimerEvent&)
             break;
         }
     }
-
+    
 
     return;
 }
@@ -398,8 +464,9 @@ int main(int argc, char *argv[])
 
     
     init.SerialInit("/dev/ttyUSB0");
-    cnt_timer = nh.createTimer(ros::Duration(1),timer_callback);//2 seconds
+    cnt_timer = nh.createTimer(ros::Duration(0.5),timer_callback);//2 seconds
     //nh.createtimer() is just a function whose return_type is a Timer
+    
     cnt_timer.start();
     
     ros::spin();    
