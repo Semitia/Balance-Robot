@@ -2,7 +2,8 @@
 #define __MOTION_H
 #include "sys.h"
 
-#define car_d 10
+#define car_d 37.4266
+#define wheel 1.6515
 #define delta_t 0.01
 
 //the Threshold of yaw control 进行转向命令的角度差阈值

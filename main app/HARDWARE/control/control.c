@@ -76,15 +76,30 @@ void EXTI9_5_IRQHandler(void)
 		//target_speed = anya_position();
 		target_angle = (float) anya_velocity() + MECHI;
 		Balance_Pwm  = anya_balance();
-		Turn_Pwm = anya_yaw();
-
+		switch(Mode)
+		{
+			case 0:
+			{
+				Turn_Pwm = anya_yaw();
+				break;
+			}
+			case 1:
+			{
+				Turn_Pwm = anya_omiga();
+				break;
+			}
+			case 2:
+			{
+				Turn_Pwm = anya_yaw();
+				break;
+			}
+		}
+		//Turn_Pwm = anya_yaw();
 		Moto1=Balance_Pwm+Turn_Pwm;  	            //===计算左轮电机最终PWM
 		Moto2=Balance_Pwm-Turn_Pwm;                 //===计算右轮电机最终PWM
-	  Xianfu_Pwm();  																					 //===PWM限幅
+	    Xianfu_Pwm();  																					 //===PWM限幅
 		Turn_Off(now.pitch,Voltage);																 //===检查角度以及电压是否正常
 		Set_Pwm(Moto1,Moto2);    //===赋值给PWM寄存器  
-		//kalman();
-		//print();
 		oled_v = target_angle, oled_up_pwm = Balance_Pwm, oled_p = target_speed;
 		data_receive();
 		data_receive3();
@@ -151,7 +166,7 @@ int anya_yaw(void)//encoder_left_right 是转速，而不是编码器累加值
 	pwm_out = Turn_KP*error  + Turn_KI*error_sum;
 	if(pitch<-30||pitch>30) 			error_sum=0;
 	
-	return -pwm_out;
+	return pwm_out;
 }
 
 float anya_position(void)
@@ -162,6 +177,14 @@ float anya_position(void)
 	output = Position_KP*(target_position - position);
 	output = output>SPEED_Y?SPEED_Y:(output<-SPEED_Y?(-SPEED_Y):output);//限幅
 	return output;
+}
+
+int anya_omiga(void)
+{
+	int pwm_out;
+	float error = target_omiga - now.w;
+	pwm_out = error*Turn_KP/5;
+	return -pwm_out;
 }
 
 float roll_raw=0, pitch_raw=0;
@@ -245,10 +268,7 @@ void data_receive(void)
 		{
 			Mode = 3;
 			warn = tr_s(buf,1,3,2);//100*(rx_buf[1]-'0') + 10*(rx_buf[2]-'0') + (rx_buf[3]-'0');
-			//DMA_USART1_Tx_Data("123456789",9);
-			//printf_f("float",12.34);
-			//printf_s(&warn,1);
-			info_req = WARN_MSG;
+			//info_req = WARN_MSG;
 			break;
 		}
 		
@@ -272,7 +292,7 @@ void data_receive(void)
 				}
 			}
 			//printf("speed:%.2f, ",target_speed);
-			info_req = SPD_MSG;
+			//info_req = SPD_MSG;
 			break;
 		}
 		
@@ -282,34 +302,34 @@ void data_receive(void)
 			target_x = tr_s(buf,1,4,2);//100*(rx_buf[1]-'0') + 10*(rx_buf[2]-'0') + (rx_buf[3]-'0') + 0.1*(rx_buf[4]-'0');
 			target_y = tr_s(buf,5,4,2);//100*(rx_buf[5]-'0') + 10*(rx_buf[6]-'0') + (rx_buf[7]-'0') + 0.1*(rx_buf[8]-'0');
 			Target_Yaw = tr_s(buf,9,4,2);
-			info_req = POS_MSG;
+			//info_req = POS_MSG;
 			break;
 		}
 		
 		case PARA_MSG:
 		{
 			balance_UP_KP = tr_s(buf,1,3,2);//(float) ( 100*(rx_buf[0]-'0') + 10*(rx_buf[1]-'0') + (rx_buf[2]-'0') );
-			printf("UP_KP:%.0f, ",balance_UP_KP);
+			//printf("UP_KP:%.0f, ",balance_UP_KP);
 			balance_UP_KD = tr_s(buf,5,3,0);//(float)( (rx_buf[4]-'0') + 0.1*(rx_buf[5]-'0') + 0.01*(rx_buf[6]-'0') );
-			printf("UP_KD:%.2f, ",balance_UP_KD);
+			//printf("UP_KD:%.2f, ",balance_UP_KD);
 			velocity_KP = tr_s(buf,9,3,2);//(float)( 100*(rx_buf[8]-'0') + 10*(rx_buf[9]-'0') + (rx_buf[10]-'0') );
-			printf("V_KP:%.0f, ",velocity_KP);
+			//printf("V_KP:%.0f, ",velocity_KP);
 			velocity_KI = tr_s(buf,13,3,0);//(float)( (rx_buf[12]-'0') + 0.1*(rx_buf[13]-'0') + 0.01*(rx_buf[14]-'0') );
-			printf("V_KI:%.2f, ",velocity_KI);
+			//printf("V_KI:%.2f, ",velocity_KI);
 			Mechanical_angle = tr_s(buf,18,3,0);//(float)( (rx_buf[17]-'0') + 0.1*(rx_buf[18]-'0') + 0.01*(rx_buf[19]-'0') );
 			if(buf[17]-'0' == 1) {Mechanical_angle *= -1;}
-			printf("Mechanical:%.2f, ",Mechanical_angle);
+			//printf("Mechanical:%.2f, ",Mechanical_angle);
 			velocity_KD = tr_s(buf,22,3,1);//(float)( 10*(rx_buf[21]-'0') + (rx_buf[22]-'0') + 0.1*(rx_buf[23]-'0') );
-			printf("V_KD:%.1f, ",velocity_KD);
+			//printf("V_KD:%.1f, ",velocity_KD);
 			Turn_KP = tr_s(buf,26,3,0);//(float)( (rx_buf[25]-'0') + 0.1*(rx_buf[26]-'0') + 0.01*(rx_buf[27]-'0') );
-			printf("Turn_KP:%.2f, ",Turn_KP);
+			//printf("Turn_KP:%.2f, ",Turn_KP);
 			Turn_KI = tr_s(buf,30,3,0);//(float)( (rx_buf[29]-'0') + 0.1*(rx_buf[30]-'0') + 0.01*(rx_buf[31]-'0') );
-			printf("Turn_KI:%.2f\r\n",Turn_KI);
+			//printf("Turn_KI:%.2f\r\n",Turn_KI);
 			target_speed = tr_s(buf,35,3,2);//(float)( 100*(rx_buf[34]-'0') + 10*(rx_buf[35]-'0') + (rx_buf[36]-'0') );
 			if(buf[34]-'0' == 1) {target_speed *= -1;}
-			printf("speed:%.0f, ",target_speed);
+			//printf("speed:%.0f, ",target_speed);
 			Position_KP = tr_s(buf,39,3,0);//(float)( 1*(rx_buf[38]-'0') + 0.1*(rx_buf[39]-'0') + 0.01*(rx_buf[40]-'0') );
-			printf("P_KP:%.2f\r\n",Position_KP);
+			//printf("P_KP:%.2f\r\n",Position_KP);
 			break;
 		}
 		case ACK_MSG:
@@ -321,31 +341,6 @@ void data_receive(void)
 		
 	}
 	
-	//printf("%d, %d\r\n", start_time, end_time);
-	/*		
-	balance_UP_KP = (float) ( 100*(rx_buf[0]-'0') + 10*(rx_buf[1]-'0') + (rx_buf[2]-'0') );
-	printf("UP_KP:%.0f, ",balance_UP_KP);
-	balance_UP_KD = (float)( (rx_buf[4]-'0') + 0.1*(rx_buf[5]-'0') + 0.01*(rx_buf[6]-'0') );
-	printf("UP_KD:%.2f, ",balance_UP_KD);
-	velocity_KP = (float)( 100*(rx_buf[8]-'0') + 10*(rx_buf[9]-'0') + (rx_buf[10]-'0') );
-	printf("V_KP:%.0f, ",velocity_KP);
-	velocity_KI = (float)( (rx_buf[12]-'0') + 0.1*(rx_buf[13]-'0') + 0.01*(rx_buf[14]-'0') );
-	printf("V_KI:%.2f, ",velocity_KI);
-	Mechanical_angle = (float)( (rx_buf[17]-'0') + 0.1*(rx_buf[18]-'0') + 0.01*(rx_buf[19]-'0') );
-	if(rx_buf[16]-'0' == 1) {Mechanical_angle *= -1;}
-	printf("Mechanical:%.2f, ",Mechanical_angle);
-	velocity_KD = (float)( 10*(rx_buf[21]-'0') + (rx_buf[22]-'0') + 0.1*(rx_buf[23]-'0') );
-	printf("V_KD:%.1f, ",velocity_KD);
-	Turn_KP = (float)( (rx_buf[25]-'0') + 0.1*(rx_buf[26]-'0') + 0.01*(rx_buf[27]-'0') );
-	printf("Turn_KP:%.2f, ",Turn_KP);
-	Turn_KI = (float)( (rx_buf[29]-'0') + 0.1*(rx_buf[30]-'0') + 0.01*(rx_buf[31]-'0') );
-	printf("Turn_KI:%.2f\r\n",Turn_KI);
-	target_speed = (float)( 100*(rx_buf[34]-'0') + 10*(rx_buf[35]-'0') + (rx_buf[36]-'0') );
-	if(rx_buf[33]-'0' == 1) {target_speed *= -1;}
-	printf("speed:%.0f, ",target_speed);
-	Position_KP = (float)( 1*(rx_buf[38]-'0') + 0.1*(rx_buf[39]-'0') + 0.01*(rx_buf[40]-'0') );
-	printf("P_KP:%.2f\r\n",Position_KP);
-	*/
 //#if !USART1_DMA
 //USART_RX_STA=0;
 //#endif
@@ -391,32 +386,7 @@ void data_receive3(void)
 	//u8 len,t;
 	if(USART3_RX_STA&0x80)
 	{					   
-		
 		//len=USART3_RX_STA&0x3f;//得到此次接收到的数据长度
-		//printf("%d, %d\r\n", start_time, end_time);
-		/*
-		balance_UP_KP = (float) ( 100*(USART3_RX_BUF[0]-'0') + 10*(USART3_RX_BUF[1]-'0') + (USART3_RX_BUF[2]-'0') );
-		printf("UP_KP:%.0f, ",balance_UP_KP);
-		balance_UP_KD = (float)( (USART3_RX_BUF[4]-'0') + 0.1*(USART3_RX_BUF[5]-'0') + 0.01*(USART3_RX_BUF[6]-'0') );
-		printf("UP_KD:%.2f, ",balance_UP_KD);
-		velocity_KP = (float)( 100*(USART3_RX_BUF[8]-'0') + 10*(USART3_RX_BUF[9]-'0') + (USART3_RX_BUF[10]-'0') );
-		printf("V_KP:%.0f, ",velocity_KP);
-		velocity_KI = (float)( (USART3_RX_BUF[12]-'0') + 0.1*(USART3_RX_BUF[13]-'0') + 0.01*(USART3_RX_BUF[14]-'0') );
-		printf("V_KI:%.2f, ",velocity_KI);
-		Mechanical_angle = (float)( (USART3_RX_BUF[17]-'0') + 0.1*(USART3_RX_BUF[18]-'0') + 0.01*(USART3_RX_BUF[19]-'0') );
-		if(USART3_RX_BUF[16]-'0' == 1) {Mechanical_angle *= -1;}
-		printf("Mechanical:%.2f, ",Mechanical_angle);
-		velocity_KD = (float)( 10*(USART3_RX_BUF[21]-'0') + (USART3_RX_BUF[22]-'0') + 0.1*(USART3_RX_BUF[23]-'0') );
-		printf("V_KD:%.1f, ",velocity_KD);
-		Turn_KP = (float)( (USART3_RX_BUF[25]-'0') + 0.1*(USART3_RX_BUF[26]-'0') + 0.01*(USART3_RX_BUF[27]-'0') );
-		printf("Turn_KP:%.2f, ",Turn_KP);
-		Turn_KI = (float)( (USART3_RX_BUF[29]-'0') + 0.1*(USART3_RX_BUF[30]-'0') + 0.01*(USART3_RX_BUF[31]-'0') );
-		printf("Turn_KI:%.2f\r\n",Turn_KI);
-		*/
-		
-		//target_speed = (float)( 10*(USART3_RX_BUF[1]-'0') + (USART3_RX_BUF[2]-'0') + 0.1*(USART3_RX_BUF[3]-'0') );
-		//if(USART3_RX_BUF[0]-'0' == 1) {target_speed *= -1;}
-		//printf("%.1f\r\n",target_speed);
 		int BTcmd= (int)tr_s(USART3_RX_BUF,0,3,2);
 		switch(BTcmd)
 		{
@@ -427,9 +397,29 @@ void data_receive3(void)
 				des_flag=1;
 				break;
 			}
-			
+			case 667://param
+			{
+				balance_UP_KP = tr_s(USART3_RX_BUF,0,3,2);
+				balance_UP_KD = tr_s(USART3_RX_BUF,4,3,0);
+				velocity_KP = tr_s(USART3_RX_BUF,8,3,2);
+				velocity_KI = tr_s(USART3_RX_BUF,12,3,0);
+				Mechanical_angle = tr_s(USART3_RX_BUF,17,3,0);
+				if(USART3_RX_BUF[16]-'0' == 1) {Mechanical_angle *= -1;}
+				velocity_KD = tr_s(USART3_RX_BUF,21,3,1);
+				Turn_KP = tr_s(USART3_RX_BUF,25,3,0);
+				Turn_KI = tr_s(USART3_RX_BUF,29,3,0);
+				break;
+			}
+			case 668://speed cmd
+			{
+				target_speed = tr_s(USART3_RX_BUF,3,4,1);
+				if(USART3_RX_BUF[0]-'0' == 1) {target_speed *= -1;}
+				target_omiga = tr_s(USART3_RX_BUF,8,4,1);
+				if(USART3_RX_BUF[7]-'0' == 1) {target_omiga *= -1;}
+				Mode=1;
+				break;
+			}
 		}
-
 		USART3_RX_STA=0;
 	}
 	return;
@@ -442,22 +432,24 @@ void sendmsg(void)
 	u8 len;
 	if(!des_flag) 
 	{
-		sprintf(buf,"Waitting DES_CMD\r\n\0");
-		len=19;
+		sprintf(buf,"Waitting DES_CMD\r\n");
+		len=18;
 	}
-	else if(!ACK)
+	else if(!ACK)//DES_MSG & POS_MSG
 	{
-		int s1=f_to_u(target_x,1), s2=f_to_u(target_y,1);
+		int s1=f_to_u(target_x,1), s2=f_to_u(target_y,1), s3=f_to_u(now.x,1), s4=f_to_u(now.y,1), s5=f_to_u(now.theta,3);
 		//sprintf(buf,"%u%d%d\r\n",DES_MSG,s1,s2);
 		buf[0]=DES_MSG+48;
 		swrite(buf,s1,1);
 		swrite(buf,s2,6);
-		
-		len=12;
+		swrite(buf,s3,11);
+		swrite(buf,s4,16);
+		swrite(buf,s5,21);
+		len=27;
 	}
-	else
+	else//POS_MSG
 	{
-		int s1=f_to_u(now.x,1), s2=f_to_u(now.y,1), s3=f_to_u(now.yaw,1);
+		int s1=f_to_u(now.x,1), s2=f_to_u(now.y,1), s3=f_to_u(now.theta,3);
 		buf[0]=POS_MSG+48;
 		swrite(buf,s1,1);
 		swrite(buf,s2,6);
@@ -511,4 +503,24 @@ void sendmsg(void)
 	return;
 }
 
+void state_info()
+{
+	u8 i;
+	char buf[20];
+	u8 len;
+
+	int s1=f_to_u(now.x,1), s2=f_to_u(now.y,1), s4=f_to_u(now.w,1), s5=f_to_u(now.theta,1);
+	buf[0]=POS_MSG+48;
+	swrite(buf,s1,1);
+	swrite(buf,s2,6);
+	swrite(buf,s4,11);
+	swrite(buf,s5,16);
+	//sprintf(buf,"%u%d%d%d\r\n",POS_MSG,s1,s2,s3);
+	len=22;
+	for(i=0;i<len;i++)
+	{
+		DMA_USART1_Tx_Data(&buf[i],1);
+	}
+	return;
+}
 

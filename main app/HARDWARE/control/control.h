@@ -36,6 +36,7 @@ float anya_position(void);
 float anya_velocity(void);
 int anya_balance(void);
 int anya_yaw(void);
+int anya_omiga(void);
 
 void Tracking(void);
 void print(void);
@@ -43,5 +44,6 @@ void data_receive(void);
 void data_receive2(void);
 void data_receive3(void);
 void sendmsg(void);
+void state_info(void);
 void kalman(void);
 #endif
