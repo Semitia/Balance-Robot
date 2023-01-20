@@ -66,13 +66,19 @@ int main(void)
 	Timer4_Init(5000,7199);	    	 //=====超声波定时器初始化
 	//Initial_UART2(9600);
 	//DMA1_USART2_Init( );
+	
+	
 	while(1)	
 	{
 		static u8 cnt=0;
 		oled_show();
 		buf_size = sizeof(buffer);
 		if(cnt>=20)
-		{cnt=0;sendmsg();}
+		{
+			cnt=0;
+			sendmsg();
+			//state_info();
+		}
 		//DMA_USART2_Tx_Data(buffer,buf_size);
 		//data_receive2();
 		//delay_ms(500); //20HZ的显示频率，屏幕无需时刻刷新。
