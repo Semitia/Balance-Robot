@@ -72,9 +72,12 @@ float tr_s(std:: string s, int start, int num, int p)
     float ans=0;
     short negative=1;
     if(s[start++] == '-') {negative=-1;}
+    num--;
     while(num>0)
     {
-        ans+= tr(s[start++])*pow(10,p--);
+        int number = tr(s[start++]);
+        ans+= number*pow(10,p--);
+        //ROS_INFO("number:%d, ans:%.3f",number,ans);
         num--;
     }
     ans*=negative;
@@ -97,7 +100,8 @@ unit_t *c_list;
 
 void insert_node(unit_t *list, data_t new_data, unit_t *fa)
 {
-    if(list == o_list) {ROS_INFO("o_list");}
+    if(list == o_list) {ROS_INFO("open_list");}
+    else {ROS_INFO("close_list");}
     ROS_INFO("DEBUG:insert node:%d,%d",new_data.x,new_data.y);
     unit_t *p;//插入的节点
     p = (unit_t*)malloc(sizeof(unit_t));
@@ -146,7 +150,7 @@ void A_star_init()
 }
 
 //enum mov_cmd {stop=1, mov_for, turn_le, turn_ri, wrong};
-const int stop=1, mov_for=2, turn_le=3, turn_ri=4, wrong=5, mov_bac=6;
+const int stop=1, mov_for=2, turn_le=3, turn_ri=4, wrong=5, mov_bac=6,for_bac=1,turn=2;
 /**
  * @brief 
  * @param from 起点
@@ -155,8 +159,16 @@ const int stop=1, mov_for=2, turn_le=3, turn_ri=4, wrong=5, mov_bac=6;
  */
 int moveto(int x, int y, unit_t *to)//暂时感觉格式还不太优美，有待优化
 {
-    ROS_INFO("DEBUG:move to");
-    float to_ang = atan((to->data.y-y)/(to->data.x-x));
+    ROS_INFO("DEBUG:move to:%d,%d",to->data.x,to->data.y);
+    float to_ang;
+    if(to->data.x == x)
+    {
+        if(to->data.y > y) {to_ang = PI/2;}
+        else if(to->data.y < y) {to_ang = -PI/2;}
+        else {return stop;}
+    }
+    else {to_ang = atan((to->data.y-y)/(to->data.x-x));}
+    ROS_INFO("target angel%.2f",to_ang);
     if(abs(to_ang - angle)<ANG_RANGE) {return mov_for;}
     else if(to_ang < angle) {return turn_ri;}
     else {return turn_le;}
@@ -170,7 +182,7 @@ int moveto(int x, int y, unit_t *to)//暂时感觉格式还不太优美，有待
  */
 int moveto(void)
 {
-    ROS_INFO("DEBUG:move to");
+    ROS_INFO("DEBUG:move to:%.2f,%.2f",_des_x,_des_y);
     float to_ang;
     if(_des_x==_pos_x)
     {
@@ -219,7 +231,7 @@ int A_star()
     {
         if(p_min->data.F > p->data.F) {p_min = p;}
     }
-    ROS_INFO("point: %d,%d",p_min->data.x,p_min->data.y);
+    ROS_INFO("center point: %d,%d",p_min->data.x,p_min->data.y);
     for(int i=0; i<8; i++)
     {
         data_t find;
@@ -266,6 +278,7 @@ int A_star()
     //delete_node(p_min);
     /*前往p_min的位置*/
     tar_unit = p_min;
+    //ROS_INFO("target point:%d,%d",tar_unit->data.x,tar_unit->data.y);
     return moveto(pos_x,pos_y,tar_unit);
 }
 
@@ -274,7 +287,7 @@ int A_star()
  */
 void write_msg(int type)
 {
-    ROS_INFO("DEBUG:write msg");
+    //ROS_INFO("DEBUG:write msg");
     switch (type)
     {
         case WARN_MSG:
@@ -302,40 +315,51 @@ void write_msg(int type)
  */
 void write_msg(int type, int move_cmd)
 {
-    ROS_INFO("DEBUG:write msg");
+    //ROS_INFO("DEBUG:write msg");
     switch(move_cmd)
     {
         case stop:
         {
             ROS_INFO("STOP");
-            std::string msg= "2" + std::to_string(mov_for) + std::to_string(0);
+            std::string msg= "2" + std::to_string(for_bac) + "+0000\r\n";
             init.SendMsgs(msg);
             break;
         }
         case mov_for:
         {
             ROS_INFO("Move Forward");
-            std::string msg= "2" + std::to_string(mov_for) + std::to_string(10);
+            std::string msg= "2" + std::to_string(for_bac) + "+0500\r\n";
             init.SendMsgs(msg);
+            break;
+        }
+        case mov_bac:
+        {
+            ROS_INFO("Move Back");
+            std::string msg= "2" + std::to_string(for_bac) + "-0500\r\n";
             break;
         }
         case turn_le:
         {
             ROS_INFO("Turn Left");
-            std::string msg= "2" + std::to_string(turn_le) + std::to_string(5);
+            std::string msg= "2" + std::to_string(turn) + "+0100\r\n";
             init.SendMsgs(msg);    
             break;
         }
         case turn_ri:
         {
             ROS_INFO("Turn Right");
-            std::string msg= "2" + std::to_string(turn_ri) + std::to_string(5);
+            std::string msg= "2" + std::to_string(turn) + "-0010\r\n";
             init.SendMsgs(msg);             
             break;
         }
         case wrong:
         {
             ROS_INFO("move command wrong");
+            break;
+        }
+        default :
+        {
+            ROS_INFO("msg_type:%d",move_cmd);
             break;
         }
     }
@@ -346,10 +370,10 @@ void write_msg(int type, int move_cmd)
 
 void timer_callback(const ros::TimerEvent&)
 {
-    ROS_INFO("loop");
+    ROS_INFO("new loop");
     std:: string warn_msgs;
-    warn_msgs = "0" + std::to_string(warn);
-    init.SendMsgs(warn_msgs);
+    //warn_msgs = "0" + std::to_string(warn);
+    //init.SendMsgs(warn_msgs);
 
     std:: string got;
     got = init.SerialRead(); 
@@ -369,7 +393,8 @@ void timer_callback(const ros::TimerEvent&)
             des_y = tr_m(_des_y);
             pos_x = tr_m(_pos_x);
             pos_y = tr_m(_pos_y);            
-            ROS_INFO("got DES_MSG:_posx:%.1f,_posy:%.1f,posx:%dposy:%d,angle:%.1f",_pos_x,_pos_y,pos_x,pos_y,angle);
+            ROS_INFO("got DES_MSG:_desx:%.2f,_desy:%.2f,desx:%d,desy:%d",_des_x,_des_y,des_x,des_y);
+            ROS_INFO("_posx:%.2f,_posy:%.2f,posx:%dposy:%d,angle:%.2f",_pos_x,_pos_y,pos_x,pos_y,angle);
             A_star_init();
             write_msg(ACK_MSG);
             break;
@@ -381,7 +406,7 @@ void timer_callback(const ros::TimerEvent&)
             angle = tr_s(got,11,5,2);
             pos_x = tr_m(_pos_x);
             pos_y = tr_m(_pos_y);
-            ROS_INFO("got POS_MSG:_x:%.1f,_y:%.1f,x:%dy:%d,angle:%.1f",_pos_x,_pos_y,pos_x,pos_y,angle);
+            ROS_INFO("got POS_MSG:_posx:%.2f,_posy:%.2f,posx:%dposy:%d,angle:%.2f",_pos_x,_pos_y,pos_x,pos_y,angle);
             for(int i=0; i<8; i++)
             {
                 float dis = WARN_RANGE;//扫到的距离
@@ -411,7 +436,7 @@ void timer_callback(const ros::TimerEvent&)
         case 1:
         {
             int move_cmd = A_star();
-            write_msg(move_cmd);
+            write_msg(SPD_MSG,move_cmd);
             break;
         }
     }
@@ -419,9 +444,6 @@ void timer_callback(const ros::TimerEvent&)
 
     return;
 }
-
-
-
 void doScan(const sensor_msgs::LaserScan::ConstPtr& msg_s){
     int n,n_group;
     warn = 0;
@@ -466,9 +488,7 @@ int main(int argc, char *argv[])
     init.SerialInit("/dev/ttyUSB0");
     cnt_timer = nh.createTimer(ros::Duration(0.5),timer_callback);//2 seconds
     //nh.createtimer() is just a function whose return_type is a Timer
-    
     cnt_timer.start();
-    
     ros::spin();    
     return 0;
 }

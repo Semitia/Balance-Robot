@@ -36,6 +36,6 @@
   <!--node pkg="tf" type="static_transform_publisher" name="base_link_to_laser4"
     args="0.0 0.0 0.2 0.0 0.0 0.0 /base_footprint /laser 40" /-->
 
-  <node pkg="tf" type="static_transform_publisher" name="base_link_to_laser4"
-    args="0.0 0.0 0.2 3.14 0.0 0.0 /laser_link /laser 40" />
+  <!--node pkg="tf" type="static_transform_publisher" name="base_link_to_laser4"
+    args="0.0 0.0 0.2 3.14 0.0 0.0 /laser_link /laser 40" /-->
 </launch>

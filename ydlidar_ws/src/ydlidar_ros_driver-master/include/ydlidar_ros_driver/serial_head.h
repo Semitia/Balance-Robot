@@ -41,7 +41,7 @@ void Set_Serial:: SerialInit(std::string port)
     try
     {
         a_ser.setPort("/dev/ttyUSB0");
-        a_ser.setBaudrate(9600);
+        a_ser.setBaudrate(115200);
         serial::Timeout to = serial::Timeout::simpleTimeout(10);
         a_ser.setTimeout(to);
         a_ser.setStopbits(serial::stopbits_one);                     //一个停止位
