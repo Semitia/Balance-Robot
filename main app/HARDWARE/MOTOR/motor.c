@@ -69,12 +69,13 @@ void Xianfu_Pwm(void)
 入口参数：倾角和电压
 返回  值：无
 **************************************************************************/
-void Turn_Off(float angle, float voltage)
+void Turn_Off(float angle, float voltage, u8 off_flag)
 {
 		if(angle<-30||angle>30||voltage<11.1)	 //电池电压低于11.1V关闭电机
 		{	                                   //===倾角大于40度关闭电机																			 
 				Moto1=0;
 				Moto2=0;
+				off_flag=1;
 		}		
 }
 	

@@ -515,9 +515,9 @@ void oled_first_show(void)
 	OLED_ShowString(0,0,"ANGLE:",12);
 	OLED_ShowString(0,1,"BAT :",12);
 	OLED_ShowString(90,1,"V",12);
-	OLED_ShowString(60,2,"R: ",12);	
-	OLED_ShowString(1,2,"L: ",12);
-	OLED_ShowString(0,7,"MODE :",12);
+	//OLED_ShowString(60,2,"R: ",12);	
+	//OLED_ShowString(1,2,"L: ",12);
+	OLED_ShowString(1,3,"MODE :",12);
 	//OLED_ShowString(0,4,"TRACK:",12);
 }
 
@@ -534,17 +534,19 @@ void oled_show(void)
 			OLED_Float(0,56,now.pitch,3);			
 		}
 		OLED_Float(1,48,Voltage,2);						//显示电压
-		//OLED_Num2(14,7,Mode);					//显示右边电机的编码器值
-		OLED_Num3(14,2,now.v_right);					//显示右边电机的编码器值
-		OLED_Num3(4 ,2,now.v_left);					//显示左边电机的编码器值
+		OLED_Num2(14,3,Mode);					
+		//OLED_Num3(14,2,now.v_right);					//显示右边电机的编码器值
+		//OLED_Num3(4 ,2,now.v_left);					//显示左边电机的编码器值
+		OLED_ShowString(0,2,"turn",12);
+		OLED_Float(2,64,oled_turn_pwm,2);
 		OLED_ShowString(0,4,"t_angl",12);
 		OLED_Float(4,64,oled_v,2);
-		OLED_ShowString(0,5,"UP_PWM",12);
-		OLED_Num4(10,5,oled_up_pwm);		
-		OLED_ShowString(0,6,"t_vel",12);
-		OLED_Float(6,64,oled_p,1);
-		OLED_ShowString(0,7,"V_err",12);
-		OLED_Float(7,64,oled_v_I,1);
+		OLED_ShowString(0,5,"tar_w",12);
+		OLED_Float(5,64,oled_tar_w,2);		
+		OLED_ShowString(0,6,"t_spd",12);
+		OLED_Float(6,64,oled_p,2);
+		OLED_ShowString(0,7,"theta",12);
+		OLED_Float(7,64,oled_theta,3);
 		switch(Mode)
 		{
 			case 97:

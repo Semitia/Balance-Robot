@@ -192,13 +192,16 @@ void printf_f(char *name, float data)
 	return;
 }
 
+/*
+	p 可以看做是保留的小数位数
+*/
 int f_to_u(float data, u8 p)
 {
 	int t = (int)floor(data*pow(10,p));
 	
 	/*DEBUG*/
-	u8 high= t>>8;
-	u8 low = t&0x00FF;
+	//u8 high= t>>8;
+	//u8 low = t&0x00FF;
 	//DMA_USART1_Tx_Data("DEBUG ",6);
 	//DMA_USART1_Tx_Data(&high,1);
 	//Uart3SendByte(high);
@@ -437,11 +440,26 @@ int tr(char t)
  */
 float tr_s(u8 *s, int start, int num, int p)
 {
-    float ans=0;
-    while(num>0)
-    {
-        ans+= tr(s[start++])*pow(10,p--);
-        num--;
-    }
-    return ans;
+	float ans=0;
+	short negative=1;
+	if(s[start++] == '-') {negative=-1;}
+	num--;
+	while(num>0)
+	{
+			ans+= tr(s[start++])*pow(10,p--);
+			num--;
+	}
+	ans*=negative;
+	return ans;
+}
+
+int tr_head(u8 *s, int start, int num, int p)
+{
+	int ans=0;
+	while(num>0)
+	{
+		ans+= tr(s[start++])*pow(10,p--);
+		num--;
+	}
+	return ans;
 }

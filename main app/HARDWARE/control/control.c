@@ -9,10 +9,12 @@
 **************************************************************************/
 
 int Balance_Pwm,Velocity_Pwm,Turn_Pwm,Turn_Kp;
-int oled_up_pwm, oled_turn_pwm;
-float oled_v,oled_p,oled_v_I;
+int oled_up_pwm;
+float oled_v,oled_p,oled_v_I,oled_tar_w,oled_theta,oled_turn_pwm;
 u8 motion_mode=0;
 bool ACK=0;
+u8 off_flag=0;
+
 float Mechanical_angle=MECHI; 
 float target_x=0, target_y=0;
 //float target_yaw=0;
@@ -98,9 +100,9 @@ void EXTI9_5_IRQHandler(void)
 		Moto1=Balance_Pwm+Turn_Pwm;  	            //===计算左轮电机最终PWM
 		Moto2=Balance_Pwm-Turn_Pwm;                 //===计算右轮电机最终PWM
 	    Xianfu_Pwm();  																					 //===PWM限幅
-		Turn_Off(now.pitch,Voltage);																 //===检查角度以及电压是否正常
+		Turn_Off(now.pitch,Voltage,off_flag);																 //===检查角度以及电压是否正常
 		Set_Pwm(Moto1,Moto2);    //===赋值给PWM寄存器  
-		oled_v = target_angle, oled_up_pwm = Balance_Pwm, oled_p = target_speed;
+		oled_v = target_angle, oled_tar_w = target_omiga, oled_p = target_speed, oled_theta = now.theta;
 		data_receive();
 		data_receive3();
 	}
@@ -146,26 +148,30 @@ float anya_velocity(void)
 	
 	if(v_error_sum>10000)		v_error_sum = 10000;             //===积分限幅
 	if(v_error_sum<-10000)		v_error_sum = -10000;            //===积分限幅	
-	if(pitch<-40||pitch>40)		v_error_sum = 0;     			 //===电机关闭后清除积分
+	if(off_flag)		
+	{
+		v_error_sum = 0;     			 //===电机关闭后清除积分
+		off_flag=1;
+	}
 	
 	last_speed = target_speed;
 	last_filted = filted;
 	last_v_err = error;
-	oled_v_I = v_error_sum;
-	return (velocity_KP*error + velocity_KI*v_error_sum - velocity_KD*d_v_err)/200;
+	//oled_v_I = v_error_sum;
+	return -(velocity_KP*error + velocity_KI*v_error_sum - velocity_KD*d_v_err)/200;
 }
 
 int anya_yaw(void)//encoder_left_right 是转速，而不是编码器累加值
 {
 	int pwm_out;
-	static int error = 0, tem_yaw=0;
-	static int error_sum = 0;
-	tem_yaw += (now.v_left - now.v_right);
-	error = tem_yaw - Target_Yaw;
+	static float error = 0, tem_yaw=0;
+	static float error_sum = 0;
+	//tem_yaw += (now.v_left - now.v_right);
+	error = Target_Yaw-now.theta;
 	error_sum += error;
 	pwm_out = Turn_KP*error  + Turn_KI*error_sum;
 	if(pitch<-30||pitch>30) 			error_sum=0;
-	
+	oled_turn_pwm = pwm_out;
 	return pwm_out;
 }
 
@@ -183,8 +189,11 @@ int anya_omiga(void)
 {
 	int pwm_out;
 	float error = target_omiga - now.w;
-	pwm_out = error*Turn_KP/5;
-	return -pwm_out;
+	static float error_sum = 0;
+	error_sum+=error;
+	pwm_out = error*Turn_KP + error_sum*Turn_KI;
+	oled_turn_pwm = (float)pwm_out;
+	return pwm_out;
 }
 
 float roll_raw=0, pitch_raw=0;
@@ -280,14 +289,14 @@ void data_receive(void)
 			{
 				case for_bac:
 				{
-					target_speed = tr_s(buf,2,3,1);//(float)( 10*(USART3_RX_BUF[1]-'0') + (USART3_RX_BUF[2]-'0') + 0.1*(USART3_RX_BUF[3]-'0') );
+					target_speed = tr_s(buf,2,5,1);//(float)( 10*(USART3_RX_BUF[1]-'0') + (USART3_RX_BUF[2]-'0') + 0.1*(USART3_RX_BUF[3]-'0') );
 					target_omiga = 0;
 					break;
 				}
 				case turn:
 				{
 					target_speed = 0;
-					target_omiga = tr_s(buf,2,3,1);
+					target_omiga = tr_s(buf,2,5,1);
 					break;
 				}
 			}
@@ -308,28 +317,31 @@ void data_receive(void)
 		
 		case PARA_MSG:
 		{
-			balance_UP_KP = tr_s(buf,1,3,2);//(float) ( 100*(rx_buf[0]-'0') + 10*(rx_buf[1]-'0') + (rx_buf[2]-'0') );
-			//printf("UP_KP:%.0f, ",balance_UP_KP);
-			balance_UP_KD = tr_s(buf,5,3,0);//(float)( (rx_buf[4]-'0') + 0.1*(rx_buf[5]-'0') + 0.01*(rx_buf[6]-'0') );
-			//printf("UP_KD:%.2f, ",balance_UP_KD);
-			velocity_KP = tr_s(buf,9,3,2);//(float)( 100*(rx_buf[8]-'0') + 10*(rx_buf[9]-'0') + (rx_buf[10]-'0') );
-			//printf("V_KP:%.0f, ",velocity_KP);
-			velocity_KI = tr_s(buf,13,3,0);//(float)( (rx_buf[12]-'0') + 0.1*(rx_buf[13]-'0') + 0.01*(rx_buf[14]-'0') );
-			//printf("V_KI:%.2f, ",velocity_KI);
-			Mechanical_angle = tr_s(buf,18,3,0);//(float)( (rx_buf[17]-'0') + 0.1*(rx_buf[18]-'0') + 0.01*(rx_buf[19]-'0') );
-			if(buf[17]-'0' == 1) {Mechanical_angle *= -1;}
-			//printf("Mechanical:%.2f, ",Mechanical_angle);
-			velocity_KD = tr_s(buf,22,3,1);//(float)( 10*(rx_buf[21]-'0') + (rx_buf[22]-'0') + 0.1*(rx_buf[23]-'0') );
-			//printf("V_KD:%.1f, ",velocity_KD);
-			Turn_KP = tr_s(buf,26,3,0);//(float)( (rx_buf[25]-'0') + 0.1*(rx_buf[26]-'0') + 0.01*(rx_buf[27]-'0') );
-			//printf("Turn_KP:%.2f, ",Turn_KP);
-			Turn_KI = tr_s(buf,30,3,0);//(float)( (rx_buf[29]-'0') + 0.1*(rx_buf[30]-'0') + 0.01*(rx_buf[31]-'0') );
-			//printf("Turn_KI:%.2f\r\n",Turn_KI);
-			target_speed = tr_s(buf,35,3,2);//(float)( 100*(rx_buf[34]-'0') + 10*(rx_buf[35]-'0') + (rx_buf[36]-'0') );
-			if(buf[34]-'0' == 1) {target_speed *= -1;}
-			//printf("speed:%.0f, ",target_speed);
-			Position_KP = tr_s(buf,39,3,0);//(float)( 1*(rx_buf[38]-'0') + 0.1*(rx_buf[39]-'0') + 0.01*(rx_buf[40]-'0') );
-			//printf("P_KP:%.2f\r\n",Position_KP);
+			u8 para_type = tr(buf[1]);
+			switch(para_type)
+			{
+				case 1:
+				{
+					break;
+				}
+				case 2:
+				{
+					break;
+				}
+				case 3:
+				{
+					break;
+				}
+				case 7:
+				{
+					//Turn_KP = tr_s(buf)
+					break;
+				}
+				case 8:
+				{
+					break;
+				}
+			}
 			break;
 		}
 		case ACK_MSG:
@@ -387,35 +399,52 @@ void data_receive3(void)
 	if(USART3_RX_STA&0x80)
 	{					   
 		//len=USART3_RX_STA&0x3f;//得到此次接收到的数据长度
-		int BTcmd= (int)tr_s(USART3_RX_BUF,0,3,2);
+		int BTcmd= (int)tr_head(USART3_RX_BUF,0,3,2);
 		switch(BTcmd)
 		{
 			case 666://destination
 			{
-				target_x = tr_s(USART3_RX_BUF,3,4,2);
-				target_y = tr_s(USART3_RX_BUF,7,4,2);
+				target_x = tr_s(USART3_RX_BUF,4,5,2);
+				target_y = tr_s(USART3_RX_BUF,10,5,2);
 				des_flag=1;
 				break;
 			}
 			case 667://param
 			{
-				balance_UP_KP = tr_s(USART3_RX_BUF,0,3,2);
-				balance_UP_KD = tr_s(USART3_RX_BUF,4,3,0);
-				velocity_KP = tr_s(USART3_RX_BUF,8,3,2);
-				velocity_KI = tr_s(USART3_RX_BUF,12,3,0);
-				Mechanical_angle = tr_s(USART3_RX_BUF,17,3,0);
-				if(USART3_RX_BUF[16]-'0' == 1) {Mechanical_angle *= -1;}
-				velocity_KD = tr_s(USART3_RX_BUF,21,3,1);
-				Turn_KP = tr_s(USART3_RX_BUF,25,3,0);
-				Turn_KI = tr_s(USART3_RX_BUF,29,3,0);
+				u8 para_type = tr(USART3_RX_BUF[4]);
+				switch(para_type)
+				{
+					case 1:
+					{
+						break;
+					}
+					case 2:
+					{
+						break;
+					}
+					case 3:
+					{
+						break;
+					}
+					case 7:
+					{
+						Turn_KP = tr_s(USART3_RX_BUF,6,5,3);
+						break;
+					}
+					case 8:
+					{
+						Turn_KI = tr_s(USART3_RX_BUF,6,5,2);
+						break;
+					}
+				}
 				break;
 			}
 			case 668://speed cmd
 			{
-				target_speed = tr_s(USART3_RX_BUF,3,4,1);
-				if(USART3_RX_BUF[0]-'0' == 1) {target_speed *= -1;}
-				target_omiga = tr_s(USART3_RX_BUF,8,4,1);
-				if(USART3_RX_BUF[7]-'0' == 1) {target_omiga *= -1;}
+				target_speed = tr_s(USART3_RX_BUF,4,5,1);
+				//if(USART3_RX_BUF[3]-'0' == 1) {target_speed *= -1;}
+				target_omiga = tr_s(USART3_RX_BUF,10,5,1);
+				//if(USART3_RX_BUF[9]-'0' == 1) {target_omiga *= -1;}
 				Mode=1;
 				break;
 			}

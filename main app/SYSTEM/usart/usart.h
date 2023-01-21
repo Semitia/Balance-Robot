@@ -39,6 +39,7 @@ void Uart3SendStr(char *str);
 
 int tr(char t);
 float tr_s(u8 *s, int start, int num, int p);
+int tr_head(u8 *s, int start, int num, int p);
 
 #endif
 

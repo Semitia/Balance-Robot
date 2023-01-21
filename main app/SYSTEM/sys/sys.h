@@ -70,13 +70,13 @@
 #ifdef GM25370
 #define MECHI -5
 #define BLC_KP 400
-#define BLC_KD 1.5
-#define SPD_KP 80
+#define BLC_KD 2.2
+#define SPD_KP 60
 #define SPD_KI 0.3
-#define SPD_KD 6
-#define TURN_KP 1
+#define SPD_KD 1
+#define TURN_KP 1000
 #define TURN_KD 0
-#define TURN_KI 0
+#define TURN_KI 10
 #define POSI_KP 0
 #endif
 
@@ -92,6 +92,7 @@
 #endif
 
 */
+
 //位带操作,实现51类似的GPIO控制功能
 //具体实现思想,参考<<CM3权威指南>>第五章(87页~92页).
 //IO口操作宏定义
@@ -156,7 +157,7 @@
 #define SWD_ENABLE         0X01
 #define JTAG_SWD_ENABLE    0X00	
 
-//????
+//角度是弧度制，坐标单位为厘米。
 typedef struct __state_t{
     float x, y, theta;//position and the direction of the car
     float pitch,roll,yaw;//???(???)
@@ -194,7 +195,7 @@ void NVIC_Configuration(void);//中断优先级设置
 void Tracking_Init(void);
 
 extern int  oled_up_pwm;
-extern float oled_v, oled_p,oled_v_I;
+extern float oled_v, oled_p,oled_v_I,oled_tar_w,oled_theta,oled_turn_pwm;
 extern state_t past,next,now;
 #endif
 
