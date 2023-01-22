@@ -1,14 +1,19 @@
 /**
- * @file anya_key.cpp
+ * @file anya_trans.cpp
  * @author Semitia
- * @brief 实时监听键盘信息并依此串口发送运动控制指令
+ * @brief 将move_base的cmd_vel转换成串口运动指令
  * @version 0.1
  * @date 2023-01-22
+ * 
  * @copyright Copyright (c) 2023
+ * 
  */
 #include "ros/ros.h"
 #include "ydlidar_ros_driver/serial_head.h"
-#include <termio.h>
+#include<ros/ros.h>
+#include<tf/transform_broadcaster.h>
+#include<nav_msgs/Odometry.h>
+#include<geometry_msgs/Twist.h>
 #include <stdio.h>
 
 #define WARN_MSG 1
@@ -20,30 +25,7 @@
 #define INFO_MSG 7//stm32's INFO
 
 Set_Serial init;
-ros:: Timer cnt_timer;
-ros:: Subscriber usart_listener;
-
-int scanKeyboard()
-{
- 
-	int in;
- 
-	struct termios new_settings;
-	struct termios stored_settings;
-    //设置终端参数
-	tcgetattr(0,&stored_settings);
-	new_settings = stored_settings;
-	new_settings.c_lflag &= (~ICANON);
-	new_settings.c_cc[VTIME] = 0;
-	tcgetattr(0,&stored_settings);
-	new_settings.c_cc[VMIN] = 1;
-	tcsetattr(0,TCSANOW,&new_settings);
-	in = getchar();
-	tcsetattr(0,TCSANOW,&stored_settings);
- 
-	return in;//返回的是字符对应的ascii码
- 
-}
+ros:: Subscriber sub;
 
 void swrite(char *buf, int txt, int start)
 {
@@ -120,54 +102,22 @@ void write_msg(int type, int move_cmd)
     return;
 }
 
- void timer_callback(const ros::TimerEvent&)
+void callback(const geometry_msgs::Twist& cmd_vel)
 {
-    ROS_INFO("new loop");
-    int key=scanKeyboard();
-    std:: string got = init.SerialRead(); 
-    int len=got.length();
-    if(len) ROS_INFO("%s",got.c_str());
-    switch(key)
-    {
-        case 'w':
-        {
-            write_msg(SPD_MSG,mov_for);
-            break;
-        }
-        case 'a':
-        {
-            write_msg(SPD_MSG,turn_le);
-            break;
-        }
-        case 's':
-        {
-            write_msg(SPD_MSG,mov_bac);
-            break;
-        }
-        case 'd':
-        {
-            write_msg(SPD_MSG,turn_ri);
-            break;
-        }
-        default :
-        {
-            write_msg(SPD_MSG,stop);
-            break;
-        }
-    }
-    return;
+	ROS_INFO("Received a /cmd_vel message!");
+	ROS_INFO("Linear Components:[%f,%f,%f]",cmd_vel.linear.x,cmd_vel.linear.y,cmd_vel.linear.z);
+	ROS_INFO("Angular Components:[%f,%f,%f]",cmd_vel.angular.x,cmd_vel.angular.y,cmd_vel.angular.z);
+
 }
 
-//测试函数
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL,"");
-    ros::init(argc,argv,"Keyboard_listener");
+    ros::init(argc,argv,"cmd_vel_listener");
     ros::NodeHandle nh;
     ros::Rate rate(10);
     init.SerialInit("/dev/ttyUSB0");
-    cnt_timer = nh.createTimer(ros::Duration(0.5),timer_callback);//2 seconds
-    cnt_timer.start();
+    sub = nh.subscribe("cmd_vel",1000,callback);
     ros::spin();  
 	return 0;
 }

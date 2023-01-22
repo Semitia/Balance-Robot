@@ -1,3 +1,14 @@
+/**
+ * @file anya_sub.cpp
+ * @author Semitia
+ * @brief 解析/scan话题，与stm32建立串口通讯并指导避障。
+ *        使用A_Star算法发送运动控制指令 或 直接发送简化的障碍物情况
+ * @version 0.1
+ * @date 2023-01-22
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
 #include <ros/ros.h>
 #include "sensor_msgs/LaserScan.h"
 #include "sensor_msgs/PointCloud.h"

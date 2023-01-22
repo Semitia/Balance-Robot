@@ -1,15 +1,14 @@
 /**
- * @file anya_key.cpp
+ * @file anya_key2.cpp
  * @author Semitia
- * @brief 实时监听键盘信息并依此串口发送运动控制指令
+ * @brief 车载PC订阅地面站的键盘信息并转换成串口运动指令
  * @version 0.1
  * @date 2023-01-22
  * @copyright Copyright (c) 2023
  */
 #include "ros/ros.h"
+#include "std_msgs/Int32.h"
 #include "ydlidar_ros_driver/serial_head.h"
-#include <termio.h>
-#include <stdio.h>
 
 #define WARN_MSG 1
 #define SPD_MSG  2
@@ -21,29 +20,7 @@
 
 Set_Serial init;
 ros:: Timer cnt_timer;
-ros:: Subscriber usart_listener;
 
-int scanKeyboard()
-{
- 
-	int in;
- 
-	struct termios new_settings;
-	struct termios stored_settings;
-    //设置终端参数
-	tcgetattr(0,&stored_settings);
-	new_settings = stored_settings;
-	new_settings.c_lflag &= (~ICANON);
-	new_settings.c_cc[VTIME] = 0;
-	tcgetattr(0,&stored_settings);
-	new_settings.c_cc[VMIN] = 1;
-	tcsetattr(0,TCSANOW,&new_settings);
-	in = getchar();
-	tcsetattr(0,TCSANOW,&stored_settings);
- 
-	return in;//返回的是字符对应的ascii码
- 
-}
 
 void swrite(char *buf, int txt, int start)
 {
@@ -120,14 +97,13 @@ void write_msg(int type, int move_cmd)
     return;
 }
 
- void timer_callback(const ros::TimerEvent&)
+void callback(const std_msgs::Int32::ConstPtr& key)
 {
     ROS_INFO("new loop");
-    int key=scanKeyboard();
     std:: string got = init.SerialRead(); 
     int len=got.length();
     if(len) ROS_INFO("%s",got.c_str());
-    switch(key)
+    switch(key->data)
     {
         case 'w':
         {
@@ -158,16 +134,19 @@ void write_msg(int type, int move_cmd)
     return;
 }
 
-//测试函数
+
 int main(int argc, char *argv[])
-{
-	setlocale(LC_ALL,"");
-    ros::init(argc,argv,"Keyboard_listener");
+{   
+    setlocale(LC_ALL,"");
+
+    //1.初始化 ROS 节点
+    ros::init(argc,argv,"keyCMD_listener");
+    //2.创建 ROS 句柄
     ros::NodeHandle nh;
-    ros::Rate rate(10);
     init.SerialInit("/dev/ttyUSB0");
-    cnt_timer = nh.createTimer(ros::Duration(0.5),timer_callback);//2 seconds
-    cnt_timer.start();
-    ros::spin();  
-	return 0;
+    //3.创建订阅对象
+    ros::Subscriber sub = nh.subscribe("keyboard",10,callback);
+
+    ros::spin();    
+    return 0;
 }
