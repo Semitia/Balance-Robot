@@ -9,6 +9,7 @@
  * @copyright Copyright (c) 2023
  * 
  */
+
 #include <ros/ros.h>
 #include "sensor_msgs/LaserScan.h"
 #include "sensor_msgs/PointCloud.h"
@@ -232,7 +233,7 @@ const int stop=1, mov_for=2, turn_le=3, turn_ri=4, wrong=5, mov_bac=6,for_bac=1,
 int moveto(unit_t *to)//暂时感觉格式还不太优美，有待优化
 {
     ROS_INFO("DEBUG:%.2f,%.2fmove to:%d,%d",_pos_x,_pos_y,to->data.x,to->data.y);
-    print_map(to->data.x,to->data.y);
+    //print_map(to->data.x,to->data.y);
     float to_ang;
     if(to->data.x == _pos_x)
     {
@@ -292,8 +293,8 @@ int moveto(void)
  */
 bool outof_range(data_t u)
 {
-    if(u.x>100 || u.x<0) {return 1;}
-    if(u.y>100 || u.y<0) {return 1;}
+    if(u.x>99 || u.x<-99) {return 1;}
+    if(u.y>99 || u.y<-99) {return 1;}
     return 0;
 }
 

@@ -74,35 +74,35 @@ void write_msg(int type, int move_cmd)
         case stop:
         {
             ROS_INFO("STOP");
-            std::string msg= "2" + std::to_string(for_bac) + "+0000\r\n";
+            std::string msg= "21+0000\r\n";
             init.SendMsgs(msg);
             break;
         }
         case mov_for:
         {
             ROS_INFO("Move Forward");
-            std::string msg= "2" + std::to_string(for_bac) + "+0500\r\n";
+            std::string msg= "21+0800\r\n";
             init.SendMsgs(msg);
             break;
         }
         case mov_bac:
         {
             ROS_INFO("Move Back");
-            std::string msg= "2" + std::to_string(for_bac) + "-0500\r\n";
+            std::string msg= "22+0800\r\n";
             init.SendMsgs(msg);
             break;
         }
         case turn_le:
         {
             ROS_INFO("Turn Left");
-            std::string msg= "2" + std::to_string(turn) + "+0100\r\n";
+            std::string msg= "23+0800\r\n";
             init.SendMsgs(msg);    
             break;
         }
         case turn_ri:
         {
             ROS_INFO("Turn Right");
-            std::string msg= "2" + std::to_string(turn) + "-0100\r\n";
+            std::string msg= "24+0800\r\n";
             init.SendMsgs(msg);             
             break;
         }

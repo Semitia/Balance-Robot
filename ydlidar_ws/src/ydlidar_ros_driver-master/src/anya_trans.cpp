@@ -8,13 +8,14 @@
  * @copyright Copyright (c) 2023
  * 
  */
-#include "ros/ros.h"
-#include "ydlidar_ros_driver/serial_head.h"
+#include"ros/ros.h"
+#include"ydlidar_ros_driver/serial_head.h"
 #include<ros/ros.h>
+#include"tf/transform_datatypes.h"
 #include<tf/transform_broadcaster.h>
 #include<nav_msgs/Odometry.h>
 #include<geometry_msgs/Twist.h>
-#include <stdio.h>
+#include<stdio.h>
 
 #define WARN_MSG 1
 #define SPD_MSG  2
@@ -26,6 +27,8 @@
 
 Set_Serial init;
 ros:: Subscriber sub;
+ros:: Publisher odom_publisher;
+ros:: Publisher goal_publisher;
 
 void swrite(char *buf, int txt, int start)
 {
@@ -102,6 +105,58 @@ void write_msg(int type, int move_cmd)
     return;
 }
 
+void odom_pub()
+{
+    nav_msgs::Odometry odom;
+    odom.header.stamp = ros::Time::now();
+    odom.header.frame_id = "odom";
+
+    //set the position
+    odom.pose.pose.position.x = 0.0;
+    odom.pose.pose.position.y = 0.0;
+    odom.pose.pose.position.z = 0.0;
+    //odom.pose.pose.orientation = 0.0;
+
+    //set the velocity
+    odom.child_frame_id = "base_link";
+    odom.twist.twist.linear.x = 0;
+    odom.twist.twist.linear.y = 0;
+    odom.twist.twist.angular.z = 0;
+
+    //publish the message
+    ROS_INFO("Odom published");
+    odom_publisher.publish(odom);
+
+    geometry_msgs :: Quaternion odom_quat = tf::createQuaternionMsgFromYaw(0);
+    geometry_msgs :: TransformStamped odom_trans;
+    static tf::TransformBroadcaster odom_broadcaster;
+    odom_trans.header.stamp = ros::Time::now();
+    odom_trans.header.frame_id = "odom";
+    odom_trans.child_frame_id = "footprint";
+    odom_trans.transform.translation.x = 0.0;
+    odom_trans.transform.translation.y = 0.0;
+    odom_trans.transform.translation.z = 0.0;
+    odom_trans.transform.rotation = odom_quat;
+    
+    odom_broadcaster.sendTransform(odom_trans);
+
+    return;
+}
+
+void goal_pub()
+{
+    geometry_msgs::PoseStamped goal;
+    goal.header.stamp = ros::Time::now();
+    goal.header.frame_id = "base_link";
+    goal.pose.position.x = 1.0;
+    goal.pose.position.y = 1.0;
+    goal.pose.position.z = 0.0;
+    
+    //ROS_INFO("Goal published");
+    //goal_publisher.publish(goal);
+    return;
+}
+
 void callback(const geometry_msgs::Twist& cmd_vel)
 {
 	ROS_INFO("Received a /cmd_vel message!");
@@ -110,13 +165,24 @@ void callback(const geometry_msgs::Twist& cmd_vel)
 
 }
 
+void timer_callback(const ros::TimerEvent&)
+{
+    ROS_INFO("new loop");
+    odom_pub();
+    goal_pub();
+    return;
+}
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL,"");
     ros::init(argc,argv,"cmd_vel_listener");
     ros::NodeHandle nh;
     ros::Rate rate(10);
-    init.SerialInit("/dev/ttyUSB0");
+    ros::Timer cnt_timer = nh.createTimer(ros::Duration(0.5),timer_callback);//2 seconds
+    cnt_timer.start();
+    //init.SerialInit("/dev/ttyUSB0");
+    odom_publisher = nh.advertise<nav_msgs::Odometry>("odom", 50);
     sub = nh.subscribe("cmd_vel",1000,callback);
     ros::spin();  
 	return 0;

@@ -18,7 +18,9 @@ find_package(catkin REQUIRED COMPONENTS
 	rospy
 	sensor_msgs
 	std_msgs
+	nav_msgs
 	serial
+	tf
 )
 
 ##################LaserFan ##########################
@@ -41,7 +43,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(CATKIN_DEPENDS
-	roscpp rospy sensor_msgs message_runtime serial std_msgs
+	roscpp rospy sensor_msgs message_runtime serial std_msgs nav_msgs
 )
 #---------------------------------------------------------------------------------------
 # Set default build to release
@@ -76,7 +78,10 @@ add_executable(${PROJECT_NAME}_node src/ydlidar_ros_driver.cpp)
 add_executable(anya_sub src/anya_sub.cpp)
 # add_executable(anya_pub src/anya_pub.cpp)
 add_executable(anya_key src/anya_key.cpp)
-
+add_executable(anya_key2 src/anya_key2.cpp)
+add_executable(anya_trans src/anya_trans.cpp)
+add_executable(big_key src/big_key.cpp)
+add_executable(key_BOTAdata src/key_BOTAdata.cpp)
 #---------------------------------------------------------------------------------------
 # add projects that depend on
 #---------------------------------------------------------------------------------------
@@ -100,7 +105,18 @@ target_link_libraries(anya_sub
 target_link_libraries(anya_key
 	${catkin_LIBRARIES}
 )
-
+target_link_libraries(anya_key2
+	${catkin_LIBRARIES}
+)
+target_link_libraries(anya_trans
+	${catkin_LIBRARIES}
+)
+target_link_libraries(big_key
+	${catkin_LIBRARIES}
+)
+target_link_libraries(key_BOTAdata
+	${catkin_LIBRARIES}
+)
 #---------------------------------------------------------------------------------------
 # Install
 #---------------------------------------------------------------------------------------
